@@ -2,42 +2,35 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Z-Hospital : Mini-Map Survivor</title>
+    <title>Z-Hospital : Elite Survivor</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
-        /* Viseur */
         #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
-            border: 2px solid rgba(255, 0, 0, 0.8); border-radius: 50%;
+            position: absolute; top: 50%; left: 50%; width: 12px; height: 12px;
+            border: 2px solid rgba(255, 0, 0, 0.9); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
-        /* Écran d'accueil */
         #instructions {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); color: #ff3333;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             cursor: pointer; z-index: 100; text-align: center;
         }
-        /* Interface bas gauche */
         #ui {
             position: absolute; bottom: 20px; left: 20px;
             color: white; font-size: 18px; text-shadow: 1px 1px #000;
-            background: rgba(0,0,0,0.7); padding: 15px; border-left: 5px solid #ff0000;
-            z-index: 50;
+            background: rgba(0,0,0,0.8); padding: 15px; border-left: 5px solid #ff0000;
+            z-index: 50; line-height: 1.5;
         }
-        /* Annonce de vague */
         #wave-announcement {
-            position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-            color: #ff0000; font-size: 40px; font-weight: bold;
-            display: none; pointer-events: none; text-shadow: 0 0 10px #000;
-            z-index: 50;
+            position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+            color: #ff0000; font-size: 50px; font-weight: bold;
+            display: none; pointer-events: none; text-shadow: 0 0 15px #000; z-index: 50;
         }
-        /* NOUVEAU : Style de la Mini-Map */
         #minimap-container {
             position: absolute; top: 20px; left: 20px;
-            border: 3px solid #333; background: rgba(0, 20, 0, 0.8);
-            border-radius: 50%; /* Rendre la map ronde façon radar */
-            overflow: hidden; z-index: 50; box-shadow: 0 0 10px #000;
+            border: 3px solid #444; background: rgba(0, 15, 0, 0.8);
+            border-radius: 50%; overflow: hidden; z-index: 50;
         }
     </style>
 </head>
@@ -45,126 +38,123 @@
 
     <div id="crosshair"></div>
     <div id="wave-announcement">VAGUE 1</div>
-
-    <div id="minimap-container">
-        <canvas id="minimap" width="150" height="150"></canvas>
-    </div>
+    <div id="minimap-container"><canvas id="minimap" width="160" height="160"></canvas></div>
 
     <div id="instructions">
-        <h1 style="font-size: 40px;">HÔPITAL : RADAR ACTIF</h1>
-        <p style="font-size: 20px;">CLIQUEZ ICI POUR JOUER</p>
-        <p style="color: #aaa; font-size: 0.8em;">(Touches ZQSD ou WASD pour bouger)</p>
+        <h1 style="font-size: 45px; letter-spacing: 5px;">Z-HOSPITAL : ELITE</h1>
+        <p style="font-size: 20px;">CLIQUEZ POUR DÉBUTER L'INTERVENTION</p>
+        <p style="color: #888;">Certains zombies sont plus gros et résistants que d'autres...</p>
     </div>
 
     <div id="ui">
         VAGUE : <span id="wave-num">1</span><br>
-        ZOMBIES RESTANTS : <span id="zombie-count">0</span><br>
-        SCORE TOTAL : <span id="score">0</span>
+        MENACES RESTANTES : <span id="zombie-count">0</span><br>
+        SCORE : <span id="score">0</span>
     </div>
 
     <script type="module">
         import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
         import { PointerLockControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/PointerLockControls.js';
 
-        // INITIALISATION THREE.JS
+        // --- INITIALISATION ---
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050805, 0.04);
+        scene.fog = new THREE.FogExp2(0x050805, 0.035);
         scene.background = new THREE.Color(0x050805);
+        
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.y = 1.7;
+
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // LUMIERES
-        const flashLight = new THREE.SpotLight(0xffffff, 4, 70, Math.PI/4, 0.4, 1);
+        // --- LAMPE TORCHE PUISSANCE MAX ---
+        const flashLight = new THREE.SpotLight(0xffffff, 10, 80, Math.PI/4.5, 0.3, 1);
         flashLight.castShadow = true;
-        scene.add(flashLight); scene.add(flashLight.target);
-        scene.add(new THREE.AmbientLight(0x404040, 0.2));
+        flashLight.shadow.mapSize.width = 1024;
+        flashLight.shadow.mapSize.height = 1024;
+        scene.add(flashLight);
+        scene.add(flashLight.target);
+        scene.add(new THREE.AmbientLight(0x404040, 0.15));
 
-        // MAP 3D
-        const mapSize = 200; // Taille totale de la carte dans le monde 3D
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(mapSize, mapSize), new THREE.MeshPhongMaterial({ color: 0x222222 }));
+        // --- DÉCOR ---
+        const mapSize = 250;
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(mapSize, mapSize), new THREE.MeshPhongMaterial({ color: 0x1a1a1a }));
         floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-        scene.add(new THREE.GridHelper(mapSize, 40, 0x000000, 0x113311));
+        scene.add(new THREE.GridHelper(mapSize, 50, 0x000000, 0x003300));
 
-        const wallMat = new THREE.MeshPhongMaterial({ color: 0x334433 });
-        for(let i = 0; i < 50; i++) {
-            const wall = new THREE.Mesh(new THREE.BoxGeometry(3, 8, 3), wallMat);
-            let x = (Math.random() - 0.5) * (mapSize*0.7); let z = (Math.random() - 0.5) * (mapSize*0.7);
-            if (Math.abs(x) < 15 && Math.abs(z) < 15) x += 30;
-            wall.position.set(x, 4, z); wall.castShadow = true; wall.receiveShadow = true; scene.add(wall);
+        const wallMat = new THREE.MeshPhongMaterial({ color: 0x2d332d });
+        for(let i = 0; i < 60; i++) {
+            const h = 5 + Math.random() * 10;
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(4, h, 4), wallMat);
+            let x = (Math.random() - 0.5) * (mapSize*0.8);
+            let z = (Math.random() - 0.5) * (mapSize*0.8);
+            if (Math.abs(x) < 20 && Math.abs(z) < 20) x += 40;
+            wall.position.set(x, h/2, z); wall.castShadow = true; wall.receiveShadow = true; scene.add(wall);
         }
 
-        // --- GESTION MINI-MAP (NOUVEAU) ---
-        const mapCanvas = document.getElementById('minimap');
-        const mapCtx = mapCanvas.getContext('2d');
-        const mapCenter = mapCanvas.width / 2;
-        // Facteur d'échelle : convertit les mètres 3D en pixels 2D
-        // On divise la taille du canvas par la taille du monde jouable
-        const scale = mapCanvas.width / mapSize; 
-
-        function drawMiniMap() {
-            // 1. Effacer le canvas (fond semi-transparent)
-            mapCtx.fillStyle = 'rgba(0, 20, 0, 0.5)';
-            mapCtx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
-
-            // 2. Dessiner le Joueur (Vert) au centre
-            mapCtx.fillStyle = '#00ff00';
-            mapCtx.beginPath();
-            // La position X 3D devient la position X 2D (+ offset pour centrer)
-            const pX = (camera.position.x * scale) + mapCenter;
-            // La position Z 3D devient la position Y 2D (car Z est la profondeur)
-            const pY = (camera.position.z * scale) + mapCenter;
-            mapCtx.arc(pX, pY, 4, 0, Math.PI * 2); // Point de 4px de rayon
-            mapCtx.fill();
-
-            // 3. Dessiner les Zombies (Rouge)
-            mapCtx.fillStyle = '#ff0000';
+        // --- MINI-MAP ---
+        const mCanvas = document.getElementById('minimap'), mCtx = mCanvas.getContext('2d'), mCenter = 80, mScale = 160 / mapSize;
+        function drawMap() {
+            mCtx.clearRect(0,0,160,160);
+            mCtx.fillStyle = 'rgba(0, 30, 0, 0.6)'; mCtx.fillRect(0,0,160,160);
+            // Joueur
+            mCtx.fillStyle = '#00ff00'; mCtx.beginPath();
+            mCtx.arc(camera.position.x*mScale+mCenter, camera.position.z*mScale+mCenter, 4, 0, Math.PI*2); mCtx.fill();
+            // Zombies
+            mCtx.fillStyle = '#ff0000';
             zombies.forEach(z => {
-                mapCtx.beginPath();
-                const zX = (z.mesh.position.x * scale) + mapCenter;
-                const zY = (z.mesh.position.z * scale) + mapCenter;
-                mapCtx.arc(zX, zY, 3, 0, Math.PI * 2); // Point de 3px
-                mapCtx.fill();
+                mCtx.beginPath();
+                mCtx.arc(z.mesh.position.x*mScale+mCenter, z.mesh.position.z*mScale+mCenter, 2 + z.hp, 0, Math.PI*2); mCtx.fill();
             });
         }
 
-        // CONTRÔLES ET UI
-        const controls = new PointerLockControls(camera, document.body);
-        const inst = document.getElementById('instructions');
-        inst.addEventListener('click', () => { controls.lock(); inst.style.display = 'none'; });
-        controls.addEventListener('unlock', () => { inst.style.display = 'flex'; });
-
-        // LOGIQUE JEU
-        let wave = 0, zombiesToSpawn = 0, score = 0, zombies = [];
+        // --- LOGIQUE DES ZOMBIES (CLASSES) ---
+        let wave = 0, score = 0, zombies = [], zombiesToSpawn = 0;
         const zombieMat = new THREE.MeshLambertMaterial({ color: 0x224422 });
 
-        function createZModel() {
+        function createZModel(typeScale) {
             const g = new THREE.Group();
-            const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), zombieMat); b.position.y = 0.6;
-            const h = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), zombieMat); h.position.y = 1.4;
-            const a = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.7), zombieMat); a.position.set(0.3, 1.1, 0.35); const a2 = a.clone(); a2.position.x = -0.3;
-            g.add(b, h, a, a2); return g;
+            const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), zombieMat.clone()); b.position.y = 0.6;
+            const h = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), zombieMat.clone()); h.position.y = 1.4;
+            const a = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.8), zombieMat.clone()); a.position.set(0.3, 1.2, 0.4);
+            const a2 = a.clone(); a2.position.x = -0.3;
+            g.add(b, h, a, a2);
+            g.scale.set(typeScale, typeScale, typeScale);
+            return g;
         }
 
-        function startNextWave() {
-            wave++; zombiesToSpawn = wave * 5;
+        function spawnZombie() {
+            const rand = Math.random();
+            let hp, scale, speed, color;
+
+            if (rand < 0.15 && wave > 2) { // TANK
+                hp = 5; scale = 2.2; speed = 0.02; color = 0x112211;
+            } else if (rand > 0.8) { // TRAQUEUR
+                hp = 1; scale = 0.7; speed = 0.08; color = 0x446644;
+            } else { // NORMAL
+                hp = 2; scale = 1.2; speed = 0.045; color = 0x224422;
+            }
+
+            const zMesh = createZModel(scale);
+            zMesh.children.forEach(part => part.material.color.setHex(color));
+            
+            const ang = Math.random() * Math.PI * 2;
+            zMesh.position.set(Math.cos(ang)*70, 0, Math.sin(ang)*70);
+            scene.add(zMesh);
+            zombies.push({ mesh: zMesh, hp: hp, speed: speed + (wave * 0.002) });
+        }
+
+        function startWave() {
+            wave++; zombiesToSpawn = wave * 6;
             document.getElementById('wave-num').innerText = wave;
-            const msg = document.getElementById('wave-announcement'); msg.innerText = "VAGUE " + wave; msg.style.display = "block";
-            setTimeout(() => msg.style.display = "none", 3000);
-            const spawner = setInterval(() => {
-                if(zombiesToSpawn > 0) {
-                    const z = createZModel();
-                    const ang = Math.random() * Math.PI * 2;
-                    const dist = 60 + Math.random()*20; // Apparition un peu plus loin
-                    z.position.set(Math.cos(ang)*dist, 0, Math.sin(ang)*dist);
-                    scene.add(z);
-                    zombies.push({ mesh: z, speed: 0.04 + (wave * 0.005) });
-                    zombiesToSpawn--; updateUI();
-                } else clearInterval(spawner);
-            }, 800); // Apparition un peu plus rapide
+            const msg = document.getElementById('wave-announcement');
+            msg.style.display = 'block'; setTimeout(()=>msg.style.display='none', 2500);
+            const timer = setInterval(() => {
+                if(zombiesToSpawn > 0) { spawnZombie(); zombiesToSpawn--; updateUI(); }
+                else clearInterval(timer);
+            }, 900);
         }
 
         function updateUI() {
@@ -172,33 +162,53 @@
             document.getElementById('score').innerText = score;
         }
 
+        // --- TIR ET DEGATS ---
         window.addEventListener('mousedown', () => {
             if(!controls.isLocked) return;
-            const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(0,0), camera);
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2(0,0), camera);
             let targets = []; zombies.forEach(z => targets.push(...z.mesh.children));
             const hit = ray.intersectObjects(targets);
+
             if(hit.length > 0) {
-                const group = hit[0].object.parent; scene.remove(group);
-                const i = zombies.findIndex(z => z.mesh === group);
-                if(i > -1) zombies.splice(i, 1);
-                score += 10; updateUI();
-                if(zombies.length === 0 && zombiesToSpawn === 0) setTimeout(startNextWave, 2000);
+                const group = hit[0].object.parent;
+                const zData = zombies.find(z => z.mesh === group);
+                
+                if(zData) {
+                    zData.hp--;
+                    // Effet visuel de dégât (clignotement)
+                    group.children.forEach(p => p.material.emissive.setHex(0x440000));
+                    setTimeout(() => group.children.forEach(p => p.material.emissive.setHex(0x000000)), 100);
+
+                    if(zData.hp <= 0) {
+                        scene.remove(group);
+                        zombies.splice(zombies.indexOf(zData), 1);
+                        score += (zData.speed > 0.06) ? 25 : 15;
+                        if(zombies.length === 0 && zombiesToSpawn === 0) setTimeout(startWave, 2500);
+                    }
+                    updateUI();
+                }
             }
         });
+
+        // --- SYSTEME DE JEU ---
+        const controls = new PointerLockControls(camera, document.body);
+        const inst = document.getElementById('instructions');
+        inst.addEventListener('click', () => { controls.lock(); inst.style.display = 'none'; });
+        controls.addEventListener('unlock', () => inst.style.display = 'flex');
 
         let keys = {};
         document.addEventListener('keydown', (e) => keys[e.code] = true);
         document.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        // BOUCLE PRINCIPALE
         function animate() {
             requestAnimationFrame(animate);
-            
             if(controls.isLocked) {
-                if(keys['KeyW'] || keys['KeyZ'] || keys['ArrowUp']) controls.moveForward(0.14);
-                if(keys['KeyS'] || keys['ArrowDown']) controls.moveForward(-0.1);
-                if(keys['KeyA'] || keys['KeyQ'] || keys['ArrowLeft']) controls.moveRight(-0.1);
-                if(keys['KeyD'] || keys['ArrowRight']) controls.moveRight(0.1);
+                const s = 0.15;
+                if(keys['KeyW'] || keys['KeyZ'] || keys['ArrowUp']) controls.moveForward(s);
+                if(keys['KeyS'] || keys['ArrowDown']) controls.moveForward(-s*0.8);
+                if(keys['KeyA'] || keys['KeyQ'] || keys['ArrowLeft']) controls.moveRight(-s*0.7);
+                if(keys['KeyD'] || keys['ArrowRight']) controls.moveRight(s*0.7);
 
                 flashLight.position.copy(camera.position);
                 const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
@@ -208,18 +218,16 @@
                     z.mesh.lookAt(camera.position.x, 0, camera.position.z);
                     const d = new THREE.Vector3().subVectors(camera.position, z.mesh.position).setY(0).normalize();
                     z.mesh.position.add(d.multiplyScalar(z.speed));
-                    if(z.mesh.position.distanceTo(camera.position) < 1.4) {
-                        controls.unlock(); alert("GAME OVER - VAGUE " + wave + " | SCORE: " + score); location.reload();
+                    if(z.mesh.position.distanceTo(camera.position) < 1.5 * z.mesh.scale.x) {
+                        controls.unlock(); alert("INFECTÉ ! SCORE FINAL: " + score); location.reload();
                     }
                 });
-
-                // --- APPEL DE LA FONCTION MINI-MAP À CHAQUE IMAGE ---
-                drawMiniMap();
+                drawMap();
             }
             renderer.render(scene, camera);
         }
-        startNextWave();
-        animate();
+
+        startWave(); animate();
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
