@@ -1,0 +1,79 @@
+/* style.css */
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+body {
+    background-color: #0d0d0d; /* Noir profond */
+    background-image: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
+    color: #e0e0e0;
+    font-family: 'Special Elite', serif; /* Style machine à écrire */
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.game-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    width: 100%;
+    max-width: 1200px;
+    height: 90vh;
+    border: 2px solid #333;
+    background: rgba(20, 20, 20, 0.9);
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.1);
+}
+
+/* Zone centrale : Le Combat */
+.main-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid #333;
+    border-right: 1px solid #333;
+}
+
+#zombie-target {
+    width: 250px;
+    height: 250px;
+    background: url('https://img.icons8.com/ios-filled/250/730000/zombie-hand.png') no-repeat center;
+    cursor: crosshair;
+    transition: transform 0.05s;
+    filter: drop-shadow(0 0 10px #730000);
+}
+
+#zombie-target:active {
+    transform: scale(0.95);
+}
+
+/* Boutique et Upgrades */
+.sidebar {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.upgrade-card {
+    background: #1a1a1a;
+    border-left: 4px solid #730000;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.upgrade-card:hover {
+    background: #252525;
+}
+
+.upgrade-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+h1, h2 {
+    color: #730000;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
