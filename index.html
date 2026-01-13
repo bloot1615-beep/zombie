@@ -2,106 +2,135 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Z-3D : First Person Survival</title>
+    <title>Z-Infection : Realistic FPG</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
-        #instructions {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: white; text-align: center; background: rgba(0,0,0,0.7); padding: 20px;
-            cursor: pointer; border: 2px solid #730000;
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
+        
+        /* Viseur au centre */
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 10;
         }
-        #ui { position: absolute; bottom: 20px; left: 20px; color: #ff0000; font-size: 20px; }
+
+        #instructions {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); color: #ff0000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 20; text-align: center;
+        }
+
+        #ui {
+            position: absolute; bottom: 30px; left: 30px;
+            color: white; font-size: 24px; text-shadow: 2px 2px #000;
+        }
     </style>
 </head>
 <body>
 
+    <div id="crosshair"></div>
+
     <div id="instructions">
-        <h1>ZONE D'INFECTION 3D</h1>
-        <p>CLIQUEZ POUR COMMENCER</p>
-        <p>(ZQSD pour marcher | SOURIS pour regarder | CLIC pour tirer)</p>
+        <h1 style="font-size: 50px;">Z-INFECTION</h1>
+        <p>CLIQUEZ POUR ENTRER DANS LA ZONE</p>
+        <p style="color: #666;">(ZQSD pour bouger | SOURIS pour viser | CLIC pour tirer)</p>
     </div>
 
-    <div id="ui">ZOMBIES ÉLIMINÉS : <span id="score">0</span></div>
+    <div id="ui">MUNITIONS: ∞ | ELIMINATIONS: <span id="score">0</span></div>
 
     <script type="module">
         import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
         import { PointerLockControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/PointerLockControls.js';
 
-        // --- 1. CONFIGURATION DE LA SCÈNE ---
+        // --- 1. INITIALISATION ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
-        scene.fog = new THREE.Fog(0x050505, 0, 50); // Brouillard noir
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.Fog(0x020205, 5, 40);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.y = 1.6; // Taille humaine
+
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // Lumière
-        const light = new THREE.HemisphereLight(0xeeeeee, 0x888888, 0.5);
-        scene.add(light);
+        // --- 2. LUMIÈRES (LAMPE TORCHE) ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.2); // Lumière d'ambiance très faible
+        scene.add(ambientLight);
 
-        // Sol (Grillage sombre)
-        const floorGeometry = new THREE.PlaneGeometry(1000, 1000);
-        const floorMaterial = new THREE.MeshPhongMaterial({ color: 0x111111 });
-        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        const flashlight = new THREE.SpotLight(0xffffff, 1.5, 30, Math.PI / 6, 0.5);
+        flashlight.position.set(0, 0, 0);
+        scene.add(flashlight);
+        scene.add(flashlight.target); // La cible de la lampe
+
+        // --- 3. DÉCOR (SOL ET CIEL) ---
+        const loader = new THREE.TextureLoader();
+        // Texture de sol (béton/terre)
+        const groundTex = loader.load('https://www.transparenttextures.com/patterns/dark-matter.png');
+        groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
+        groundTex.repeat.set(100, 100);
+
+        const floor = new THREE.Mesh(
+            new THREE.PlaneGeometry(1000, 1000),
+            new THREE.MeshPhongMaterial({ map: groundTex, color: 0x222222 })
+        );
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        // --- 2. CONTRÔLES (MOUVEMENT) ---
+        // --- 4. CONTRÔLES ---
         const controls = new PointerLockControls(camera, document.body);
-        const instructions = document.getElementById('instructions');
+        const inst = document.getElementById('instructions');
+        inst.addEventListener('click', () => controls.lock());
+        controls.addEventListener('lock', () => inst.style.display = 'none');
+        controls.addEventListener('unlock', () => inst.style.display = 'flex');
 
-        instructions.addEventListener('click', () => controls.lock());
-        controls.addEventListener('lock', () => instructions.style.display = 'none');
-        controls.addEventListener('unlock', () => instructions.style.display = 'block');
+        let moveF = false, moveB = false, moveL = false, moveR = false;
+        document.addEventListener('keydown', (e) => {
+            if(e.code === 'KeyW' || e.code === 'KeyZ') moveF = true;
+            if(e.code === 'KeyS') moveB = true;
+            if(e.code === 'KeyA' || e.code === 'KeyQ') moveL = true;
+            if(e.code === 'KeyD') moveR = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if(e.code === 'KeyW' || e.code === 'KeyZ') moveF = false;
+            if(e.code === 'KeyS') moveB = false;
+            if(e.code === 'KeyA' || e.code === 'KeyQ') moveL = false;
+            if(e.code === 'KeyD') moveR = false;
+        });
 
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        const onKeyDown = (e) => {
-            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = true;
-            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = true;
-            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = true;
-            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = true;
-        };
-        const onKeyUp = (e) => {
-            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = false;
-            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = false;
-            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = false;
-            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = false;
-        };
-        document.addEventListener('keydown', onKeyDown);
-        document.addEventListener('keyup', onKeyUp);
-
-        // --- 3. SYSTÈME DE ZOMBIES ---
+        // --- 5. ENNEMIS (SPRITES ZOMBIES) ---
         const zombies = [];
-        const zombieGeo = new THREE.BoxGeometry(1, 2, 1);
-        const zombieMat = new THREE.MeshBasicMaterial({ color: 0x730000 });
+        const zombieTexture = loader.load('https://i.imgur.com/vH97N08.png'); // Image de zombie réaliste
 
         function spawnZombie() {
-            const zombie = new THREE.Mesh(zombieGeo, zombieMat);
-            // Apparition aléatoire au loin
+            const material = new THREE.SpriteMaterial({ map: zombieTexture });
+            const zombie = new THREE.Sprite(material);
+            zombie.scale.set(1.5, 2.5, 1); // Taille humaine
+            
             const angle = Math.random() * Math.PI * 2;
-            const dist = 40;
-            zombie.position.x = Math.cos(angle) * dist;
-            zombie.position.z = Math.sin(angle) * dist;
-            zombie.position.y = 1;
+            const dist = 30;
+            zombie.position.set(Math.cos(angle)*dist, 1.25, Math.sin(angle)*dist);
+            
             scene.add(zombie);
             zombies.push(zombie);
         }
 
-        setInterval(spawnZombie, 3000); // Un zombie toutes les 3 sec
+        setInterval(spawnZombie, 2000);
 
-        // --- 4. SYSTÈME DE TIR ---
+        // --- 6. TIR ---
         let score = 0;
         window.addEventListener('mousedown', () => {
-            if (!controls.isLocked) return;
-
-            // On utilise un Raycaster pour voir si on touche un zombie
+            if(!controls.isLocked) return;
+            
             const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
             const intersects = raycaster.intersectObjects(zombies);
 
-            if (intersects.length > 0) {
+            if(intersects.length > 0) {
                 const target = intersects[0].object;
                 scene.remove(target);
                 zombies.splice(zombies.indexOf(target), 1);
@@ -110,43 +139,40 @@
             }
         });
 
-        // --- 5. BOUCLE D'ANIMATION ---
+        // --- 7. BOUCLE DE JEU ---
         const velocity = new THREE.Vector3();
-        const direction = new THREE.Vector3();
-
         function animate() {
             requestAnimationFrame(animate);
 
-            if (controls.isLocked) {
-                // Mouvement du joueur
-                velocity.x -= velocity.x * 10.0 * 0.016;
+            if(controls.isLocked) {
+                // Mouvement
                 velocity.z -= velocity.z * 10.0 * 0.016;
-
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize();
-
-                if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * 0.016;
-                if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * 0.016;
-
-                controls.moveRight(-velocity.x * 0.016);
+                velocity.x -= velocity.x * 10.0 * 0.016;
+                if(moveF) velocity.z -= 200.0 * 0.016;
+                if(moveB) velocity.z += 200.0 * 0.016;
+                if(moveL) velocity.x -= 200.0 * 0.016;
+                if(moveR) velocity.x += 200.0 * 0.016;
+                
                 controls.moveForward(-velocity.z * 0.016);
+                controls.moveRight(velocity.x * 0.016);
 
-                // Mouvement des zombies vers le joueur
-                zombies.forEach(zombie => {
-                    const dir = new THREE.Vector3();
-                    dir.subVectors(camera.position, zombie.position).normalize();
-                    zombie.position.x += dir.x * 0.05;
-                    zombie.position.z += dir.z * 0.05;
+                // La lampe torche suit la caméra
+                flashlight.position.copy(camera.position);
+                const targetDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                flashlight.target.position.copy(camera.position).add(targetDir);
+
+                // Les zombies traquent le joueur
+                zombies.forEach(z => {
+                    const dir = new THREE.Vector3().subVectors(camera.position, z.position).normalize();
+                    z.position.x += dir.x * 0.03;
+                    z.position.z += dir.z * 0.03;
                     
-                    // Si un zombie est trop proche (Game Over)
-                    if (zombie.position.distanceTo(camera.position) < 1.5) {
-                        alert("UN ZOMBIE VOUS A ATTRAPÉ !");
+                    if(z.position.distanceTo(camera.position) < 1.2) {
+                        alert("GAME OVER : Ils vous ont dévoré !");
                         location.reload();
                     }
                 });
             }
-
             renderer.render(scene, camera);
         }
         animate();
