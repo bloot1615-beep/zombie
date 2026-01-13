@@ -2,221 +2,207 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Z-Land : Survival RPG</title>
+    <title>Z-Vision : First Person Survivor</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
-
         body {
-            background-color: #050505;
-            color: #2ecc71; /* Vert terminal */
-            font-family: 'Courier Prime', monospace;
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Vue à la première personne */
+        #viewport {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: url('https://images.unsplash.com/photo-1505672678657-cc7037095e60?q=80&w=2000') no-repeat center center;
+            background-size: cover;
             display: flex;
             justify-content: center;
-            padding: 20px;
-            margin: 0;
+            align-items: center;
+            cursor: crosshair;
         }
 
-        #game-container {
-            width: 100%;
-            max-width: 800px;
-            border: 1px solid #1a1a1a;
-            background: #0a0a0a;
-            padding: 20px;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.05);
+        /* Overlay sombre pour l'ambiance */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
         }
 
-        /* Interface des Stats */
-        .stats-bar {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 2px solid #1a1a1a;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            color: #e74c3c; /* Rouge pour les stats vitales */
+        /* Le Viseur */
+        #crosshair {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255, 0, 0, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
         }
-
-        /* Journal d'événements */
-        #log {
-            height: 300px;
-            overflow-y: auto;
-            border: 1px solid #1a1a1a;
-            padding: 15px;
-            background: #000;
-            margin-bottom: 20px;
-            font-size: 0.95em;
-            line-height: 1.5;
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: red;
         }
+        #crosshair::before { top: 50%; left: 0; width: 100%; height: 1px; }
+        #crosshair::after { left: 50%; top: 0; width: 1px; height: 100%; }
 
-        .event-text { margin-bottom: 10px; border-left: 3px solid #333; padding-left: 10px; }
-        .danger { color: #ff4d4d; border-color: #ff4d4d; }
-        .loot { color: #f1c40f; border-color: #f1c40f; }
-
-        /* Boutons d'Action */
-        .actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        button {
-            background: #1a1a1a;
-            border: 1px solid #2ecc71;
-            color: #2ecc71;
-            padding: 15px;
+        /* Les Zombies (Cibles) */
+        .zombie {
+            position: absolute;
+            width: 100px;
+            height: 150px;
+            background: url('https://img.icons8.com/ios-filled/200/730000/zombie-hand.png') no-repeat center;
+            background-size: contain;
+            transition: transform 0.1s;
+            filter: drop-shadow(0 0 10px #f00);
             cursor: pointer;
-            font-family: 'Courier Prime', monospace;
-            text-transform: uppercase;
-            transition: 0.2s;
         }
 
-        button:hover:not(:disabled) {
-            background: #2ecc71;
-            color: #000;
+        /* UI de survie */
+        #ui {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            text-shadow: 2px 2px #000;
         }
 
-        button:disabled {
-            border-color: #333;
-            color: #333;
-            cursor: not-allowed;
+        .stat { font-size: 24px; margin-bottom: 10px; }
+        .hp-bar { width: 200px; height: 20px; border: 2px solid #fff; background: #300; }
+        #hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.3s; }
+
+        #score-board {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            font-size: 30px;
+            color: #ff0;
         }
 
-        .hidden { display: none; }
+        #flash {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Animation de tir */
+        .recoil { animation: shake 0.1s; }
+        @keyframes shake {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0); }
+        }
     </style>
 </head>
-<body>
+<body onclick="shoot()">
 
-<div id="game-container">
-    <div class="stats-bar">
-        <span>SANTÉ: <span id="hp">100</span>/100</span>
-        <span>MUNITIONS: <span id="ammo">10</span></span>
-        <span>XP: <span id="xp">0</span></span>
-    </div>
+    <div id="viewport">
+        <div id="overlay"></div>
+        <div id="flash"></div>
+        <div id="crosshair"></div>
+        
+        <div id="ui">
+            <div class="stat">SANTÉ DU SURVIVANT</div>
+            <div class="hp-bar"><div id="hp-fill"></div></div>
+            <div class="stat" style="margin-top: 10px;">MUNITIONS: <span id="ammo">12</span></div>
+        </div>
 
-    <div id="log">
-        <div class="event-text">Système initialisé... Bienvenue dans la Zone.</div>
+        <div id="score-board">KILLS: <span id="kills">0</span></div>
     </div>
-
-    <div id="menu-explore" class="actions">
-        <button onclick="explore()">Explorer le secteur</button>
-        <button onclick="rest()">Se reposer (Soin)</button>
-    </div>
-
-    <div id="menu-combat" class="actions hidden">
-        <button onclick="attack()">Tirer (1 Balle)</button>
-        <button onclick="run()">Tenter de fuir</button>
-    </div>
-</div>
 
 <script>
-    // État du Joueur
-    let player = {
-        hp: 100,
-        ammo: 10,
-        xp: 0,
-        level: 1
-    };
+    let hp = 100;
+    let ammo = 12;
+    let kills = 0;
+    let gameActive = true;
 
-    let currentEnemyHp = 0;
+    // Suivre la souris pour le viseur
+    const viewport = document.getElementById('viewport');
+    const crosshair = document.getElementById('crosshair');
+    
+    window.addEventListener('mousemove', (e) => {
+        crosshair.style.left = (e.clientX - 20) + 'px';
+        crosshair.style.top = (e.clientY - 20) + 'px';
+    });
 
-    const logElement = document.getElementById('log');
+    // Système de tir
+    function shoot() {
+        if (!gameActive || ammo <= 0) return;
 
-    function updateUI() {
-        document.getElementById('hp').innerText = player.hp;
-        document.getElementById('ammo').innerText = player.ammo;
-        document.getElementById('xp').innerText = player.xp;
+        ammo--;
+        document.getElementById('ammo').innerText = ammo;
         
-        if(player.hp <= 0) {
-            addLog("MORT : Vous avez succombé aux blessures.", "danger");
-            document.querySelectorAll('button').forEach(b => b.disabled = true);
+        // Effet visuel de tir
+        const flash = document.getElementById('flash');
+        flash.style.opacity = '0.3';
+        setTimeout(() => flash.style.opacity = '0', 50);
+        viewport.classList.add('recoil');
+        setTimeout(() => viewport.classList.remove('recoil'), 100);
+
+        if (ammo === 0) {
+            setTimeout(() => { ammo = 12; document.getElementById('ammo').innerText = ammo; }, 1500); // Recharge auto
         }
     }
 
-    function addLog(text, type = "") {
-        const div = document.createElement('div');
-        div.className = `event-text ${type}`;
-        div.innerText = `> ${text}`;
-        logElement.prepend(div);
-    }
+    // Apparition des zombies
+    function spawnZombie() {
+        if (!gameActive) return;
 
-    // --- LOGIQUE D'EXPLORATION ---
-    function explore() {
-        let chance = Math.random();
+        const zombie = document.createElement('div');
+        zombie.className = 'zombie';
+        
+        // Position aléatoire
+        const x = Math.random() * (window.innerWidth - 100);
+        const y = Math.random() * (window.innerHeight - 200) + 100;
+        
+        zombie.style.left = x + 'px';
+        zombie.style.top = y + 'px';
+        zombie.style.transform = 'scale(0.1)'; // Commence loin
 
-        if (chance > 0.7) {
-            // Rencontre Zombie
-            startCombat();
-        } else if (chance > 0.4) {
-            // Trouve des munitions
-            let found = Math.floor(Math.random() * 5) + 2;
-            player.ammo += found;
-            addLog(`Vous fouillez un bâtiment et trouvez ${found} munitions.`, "loot");
-        } else {
-            // Rien
-            addLog("Secteur vide. Rien à signaler.");
-        }
-        updateUI();
-    }
-
-    function rest() {
-        if(player.hp < 100) {
-            player.hp = Math.min(100, player.hp + 20);
-            addLog("Vous avez pris quelques heures de repos.");
-        } else {
-            addLog("Vous n'êtes pas fatigué.");
-        }
-        updateUI();
-    }
-
-    // --- LOGIQUE DE COMBAT ---
-    function startCombat() {
-        currentEnemyHp = 15 + (player.level * 5);
-        addLog("ALERTE : Un zombie affamé vous bloque le passage !", "danger");
-        document.getElementById('menu-explore').classList.add('hidden');
-        document.getElementById('menu-combat').classList.remove('hidden');
-    }
-
-    function attack() {
-        if (player.ammo > 0) {
-            player.ammo--;
-            let dmg = Math.floor(Math.random() * 10) + 5;
-            currentEnemyHp -= dmg;
-            addLog(`Vous tirez. Le zombie perd ${dmg} PV.`);
-
-            if (currentEnemyHp <= 0) {
-                addLog("Le zombie s'effondre. Vous gagnez 20 XP.", "loot");
-                player.xp += 20;
-                endCombat();
-            } else {
-                enemyTurn();
+        zombie.onclick = (e) => {
+            e.stopPropagation(); // Empêche de compter comme un tir dans le vide
+            if (ammo > 0) {
+                kills++;
+                document.getElementById('kills').innerText = kills;
+                zombie.remove();
             }
-        } else {
-            addLog("Plus de munitions ! Vous devez fuir !", "danger");
+        };
+
+        viewport.appendChild(zombie);
+
+        // Le zombie s'approche (grossit)
+        let size = 0.1;
+        const approach = setInterval(() => {
+            size += 0.01;
+            zombie.style.transform = `scale(${size})`;
+            
+            if (size >= 1.5) { // Le zombie vous a atteint
+                clearInterval(approach);
+                takeDamage();
+                zombie.remove();
+            }
+        }, 50);
+    }
+
+    function takeDamage() {
+        hp -= 20;
+        document.getElementById('hp-fill').style.width = hp + '%';
+        if (hp <= 0) {
+            gameActive = false;
+            alert("VOUS AVEZ ÉTÉ INFECTÉ. Score final : " + kills);
+            location.reload();
         }
-        updateUI();
     }
 
-    function enemyTurn() {
-        let dmg = Math.floor(Math.random() * 15) + 5;
-        player.hp -= dmg;
-        addLog(`Le zombie vous griffe ! -${dmg} PV`, "danger");
-        updateUI();
-    }
+    // Lancer le jeu
+    setInterval(spawnZombie, 2000); // Un zombie toutes les 2 secondes
 
-    function run() {
-        if (Math.random() > 0.5) {
-            addLog("Vous avez réussi à vous échapper.");
-            endCombat();
-        } else {
-            addLog("La fuite a échoué ! Le zombie attaque.", "danger");
-            enemyTurn();
-        }
-    }
-
-    function endCombat() {
-        document.getElementById('menu-explore').classList.remove('hidden');
-        document.getElementById('menu-combat').classList.add('hidden');
-        updateUI();
-    }
 </script>
 </body>
 </html>
