@@ -2,164 +2,221 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zombie Survival Clicker</title>
+    <title>Z-Land : Survival RPG</title>
     <style>
-        /* DESIGN DU JEU */
-        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
         body {
-            background-color: #0d0d0d;
-            background-image: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
-            color: #e0e0e0;
-            font-family: 'Special Elite', serif;
+            background-color: #050505;
+            color: #2ecc71; /* Vert terminal */
+            font-family: 'Courier Prime', monospace;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
             margin: 0;
-            display: flex;
-            justify-content: center;
-            height: 100vh;
         }
 
-        .game-layout {
-            display: grid;
-            grid-template-columns: 280px 1fr 280px;
+        #game-container {
             width: 100%;
-            max-width: 1200px;
-            border-left: 2px solid #333;
-            border-right: 2px solid #333;
-            background: rgba(10, 10, 10, 0.9);
+            max-width: 800px;
+            border: 1px solid #1a1a1a;
+            background: #0a0a0a;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.05);
         }
 
-        .sidebar { padding: 20px; border-right: 1px solid #222; overflow-y: auto; }
-        .shop { border-left: 1px solid #222; border-right: none; }
-
-        .main-area {
+        /* Interface des Stats */
+        .stats-bar {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #1a1a1a;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #e74c3c; /* Rouge pour les stats vitales */
         }
 
-        /* Le bouton Zombie */
-        #zombie-target {
-            width: 200px;
-            height: 200px;
-            background: #730000;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
-            cursor: pointer;
-            box-shadow: 0 0 30px rgba(115, 0, 0, 0.5);
-            transition: transform 0.05s, box-shadow 0.1s;
-            user-select: none;
-            margin: 20px 0;
+        /* Journal d'événements */
+        #log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #1a1a1a;
+            padding: 15px;
+            background: #000;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+            line-height: 1.5;
         }
 
-        #zombie-target:active { transform: scale(0.92); box-shadow: 0 0 10px rgba(115, 0, 0, 0.8); }
+        .event-text { margin-bottom: 10px; border-left: 3px solid #333; padding-left: 10px; }
+        .danger { color: #ff4d4d; border-color: #ff4d4d; }
+        .loot { color: #f1c40f; border-color: #f1c40f; }
 
-        .upgrade-card {
+        /* Boutons d'Action */
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
             background: #1a1a1a;
-            border: 1px solid #333;
-            border-left: 4px solid #730000;
-            padding: 12px;
-            margin-bottom: 10px;
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+            padding: 15px;
             cursor: pointer;
-            font-size: 0.9em;
+            font-family: 'Courier Prime', monospace;
+            text-transform: uppercase;
+            transition: 0.2s;
         }
 
-        .upgrade-card:hover { background: #252525; }
-        .upgrade-card.disabled { opacity: 0.4; cursor: not-allowed; }
+        button:hover:not(:disabled) {
+            background: #2ecc71;
+            color: #000;
+        }
 
-        h1, h2 { color: #730000; text-transform: uppercase; margin-bottom: 10px; }
-        .dna-counter { font-size: 1.5em; color: #ff4d4d; margin-bottom: 20px; }
+        button:disabled {
+            border-color: #333;
+            color: #333;
+            cursor: not-allowed;
+        }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="game-layout">
-        <div class="sidebar">
-            <h2>État Civil</h2>
-            <p>Survivants : <span id="survivors-count">0</span></p>
-            <p>Production : <br><span id="pps">0</span> ADN/sec</p>
-        </div>
-
-        <div class="main-area">
-            <h1>Zone d'Infection</h1>
-            <div class="dna-counter" id="score-display">0 ADN Récupéré</div>
-            <div id="zombie-target">💀</div>
-            <p>Cliquez sur le crâne pour récolter l'ADN</p>
-        </div>
-
-        <div class="sidebar shop">
-            <h2>Arsenal</h2>
-            <div id="shop-container"></div>
-        </div>
+<div id="game-container">
+    <div class="stats-bar">
+        <span>SANTÉ: <span id="hp">100</span>/100</span>
+        <span>MUNITIONS: <span id="ammo">10</span></span>
+        <span>XP: <span id="xp">0</span></span>
     </div>
 
-    <script>
-        // LOGIQUE DU JEU
-        let dna = 0;
-        let pps = 0;
-        let upgrades = [
-            { id: 1, name: "Piège à Loup", cost: 15, power: 0.5, owned: 0 },
-            { id: 2, name: "Sentinelle Armée", cost: 100, power: 3, owned: 0 },
-            { id: 3, name: "Escouade d'Élite", cost: 1100, power: 18, owned: 0 }
-        ];
+    <div id="log">
+        <div class="event-text">Système initialisé... Bienvenue dans la Zone.</div>
+    </div>
 
-        const target = document.getElementById('zombie-target');
-        const scoreDisplay = document.getElementById('score-display');
-        const ppsDisplay = document.getElementById('pps');
-        const shopContainer = document.getElementById('shop-container');
+    <div id="menu-explore" class="actions">
+        <button onclick="explore()">Explorer le secteur</button>
+        <button onclick="rest()">Se reposer (Soin)</button>
+    </div>
 
-        // Clic manuel
-        target.onclick = () => {
-            dna += 1;
-            updateUI();
-        };
+    <div id="menu-combat" class="actions hidden">
+        <button onclick="attack()">Tirer (1 Balle)</button>
+        <button onclick="run()">Tenter de fuir</button>
+    </div>
+</div>
 
-        function buyUpgrade(id) {
-            const upg = upgrades.find(u => u.id === id);
-            if (dna >= upg.cost) {
-                dna -= upg.cost;
-                upg.owned++;
-                upg.cost = Math.floor(upg.cost * 1.15);
-                calculatePPS();
-                updateUI();
-            }
+<script>
+    // État du Joueur
+    let player = {
+        hp: 100,
+        ammo: 10,
+        xp: 0,
+        level: 1
+    };
+
+    let currentEnemyHp = 0;
+
+    const logElement = document.getElementById('log');
+
+    function updateUI() {
+        document.getElementById('hp').innerText = player.hp;
+        document.getElementById('ammo').innerText = player.ammo;
+        document.getElementById('xp').innerText = player.xp;
+        
+        if(player.hp <= 0) {
+            addLog("MORT : Vous avez succombé aux blessures.", "danger");
+            document.querySelectorAll('button').forEach(b => b.disabled = true);
         }
+    }
 
-        function calculatePPS() {
-            pps = upgrades.reduce((acc, u) => acc + (u.owned * u.power), 0);
-            document.getElementById('survivors-count').innerText = upgrades.reduce((acc, u) => acc + u.owned, 0);
+    function addLog(text, type = "") {
+        const div = document.createElement('div');
+        div.className = `event-text ${type}`;
+        div.innerText = `> ${text}`;
+        logElement.prepend(div);
+    }
+
+    // --- LOGIQUE D'EXPLORATION ---
+    function explore() {
+        let chance = Math.random();
+
+        if (chance > 0.7) {
+            // Rencontre Zombie
+            startCombat();
+        } else if (chance > 0.4) {
+            // Trouve des munitions
+            let found = Math.floor(Math.random() * 5) + 2;
+            player.ammo += found;
+            addLog(`Vous fouillez un bâtiment et trouvez ${found} munitions.`, "loot");
+        } else {
+            // Rien
+            addLog("Secteur vide. Rien à signaler.");
         }
-
-        function updateUI() {
-            scoreDisplay.innerText = `${Math.floor(dna)} ADN Récupéré`;
-            ppsDisplay.innerText = pps.toFixed(1);
-            
-            shopContainer.innerHTML = '';
-            upgrades.forEach(upg => {
-                const btn = document.createElement('div');
-                btn.className = `upgrade-card ${dna < upg.cost ? 'disabled' : ''}`;
-                btn.innerHTML = `
-                    <strong>${upg.name} (x${upg.owned})</strong><br>
-                    Prix: ${upg.cost} ADN | +${upg.power}/s
-                `;
-                btn.onclick = () => buyUpgrade(upg.id);
-                shopContainer.appendChild(btn);
-            });
-        }
-
-        // Boucle automatique (10 fois par seconde pour la fluidité)
-        setInterval(() => {
-            dna += pps / 10;
-            updateUI();
-        }, 100);
-
-        // Initialisation
         updateUI();
-    </script>
+    }
+
+    function rest() {
+        if(player.hp < 100) {
+            player.hp = Math.min(100, player.hp + 20);
+            addLog("Vous avez pris quelques heures de repos.");
+        } else {
+            addLog("Vous n'êtes pas fatigué.");
+        }
+        updateUI();
+    }
+
+    // --- LOGIQUE DE COMBAT ---
+    function startCombat() {
+        currentEnemyHp = 15 + (player.level * 5);
+        addLog("ALERTE : Un zombie affamé vous bloque le passage !", "danger");
+        document.getElementById('menu-explore').classList.add('hidden');
+        document.getElementById('menu-combat').classList.remove('hidden');
+    }
+
+    function attack() {
+        if (player.ammo > 0) {
+            player.ammo--;
+            let dmg = Math.floor(Math.random() * 10) + 5;
+            currentEnemyHp -= dmg;
+            addLog(`Vous tirez. Le zombie perd ${dmg} PV.`);
+
+            if (currentEnemyHp <= 0) {
+                addLog("Le zombie s'effondre. Vous gagnez 20 XP.", "loot");
+                player.xp += 20;
+                endCombat();
+            } else {
+                enemyTurn();
+            }
+        } else {
+            addLog("Plus de munitions ! Vous devez fuir !", "danger");
+        }
+        updateUI();
+    }
+
+    function enemyTurn() {
+        let dmg = Math.floor(Math.random() * 15) + 5;
+        player.hp -= dmg;
+        addLog(`Le zombie vous griffe ! -${dmg} PV`, "danger");
+        updateUI();
+    }
+
+    function run() {
+        if (Math.random() > 0.5) {
+            addLog("Vous avez réussi à vous échapper.");
+            endCombat();
+        } else {
+            addLog("La fuite a échoué ! Le zombie attaque.", "danger");
+            enemyTurn();
+        }
+    }
+
+    function endCombat() {
+        document.getElementById('menu-explore').classList.remove('hidden');
+        document.getElementById('menu-combat').classList.add('hidden');
+        updateUI();
+    }
+</script>
 </body>
 </html>
