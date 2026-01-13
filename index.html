@@ -2,207 +2,154 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Z-Vision : First Person Survivor</title>
+    <title>Z-3D : First Person Survival</title>
     <style>
-        body {
-            margin: 0;
-            background-color: #000;
-            color: #fff;
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
-            user-select: none;
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        #instructions {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: white; text-align: center; background: rgba(0,0,0,0.7); padding: 20px;
+            cursor: pointer; border: 2px solid #730000;
         }
-
-        /* Vue à la première personne */
-        #viewport {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            background: url('https://images.unsplash.com/photo-1505672678657-cc7037095e60?q=80&w=2000') no-repeat center center;
-            background-size: cover;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: crosshair;
-        }
-
-        /* Overlay sombre pour l'ambiance */
-        #overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.8) 100%);
-            pointer-events: none;
-        }
-
-        /* Le Viseur */
-        #crosshair {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border: 2px solid rgba(255, 0, 0, 0.5);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-        #crosshair::before, #crosshair::after {
-            content: '';
-            position: absolute;
-            background: red;
-        }
-        #crosshair::before { top: 50%; left: 0; width: 100%; height: 1px; }
-        #crosshair::after { left: 50%; top: 0; width: 1px; height: 100%; }
-
-        /* Les Zombies (Cibles) */
-        .zombie {
-            position: absolute;
-            width: 100px;
-            height: 150px;
-            background: url('https://img.icons8.com/ios-filled/200/730000/zombie-hand.png') no-repeat center;
-            background-size: contain;
-            transition: transform 0.1s;
-            filter: drop-shadow(0 0 10px #f00);
-            cursor: pointer;
-        }
-
-        /* UI de survie */
-        #ui {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            text-shadow: 2px 2px #000;
-        }
-
-        .stat { font-size: 24px; margin-bottom: 10px; }
-        .hp-bar { width: 200px; height: 20px; border: 2px solid #fff; background: #300; }
-        #hp-fill { width: 100%; height: 100%; background: #f00; transition: width 0.3s; }
-
-        #score-board {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            font-size: 30px;
-            color: #ff0;
-        }
-
-        #flash {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: white;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Animation de tir */
-        .recoil { animation: shake 0.1s; }
-        @keyframes shake {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-            100% { transform: translateY(0); }
-        }
+        #ui { position: absolute; bottom: 20px; left: 20px; color: #ff0000; font-size: 20px; }
     </style>
 </head>
-<body onclick="shoot()">
+<body>
 
-    <div id="viewport">
-        <div id="overlay"></div>
-        <div id="flash"></div>
-        <div id="crosshair"></div>
-        
-        <div id="ui">
-            <div class="stat">SANTÉ DU SURVIVANT</div>
-            <div class="hp-bar"><div id="hp-fill"></div></div>
-            <div class="stat" style="margin-top: 10px;">MUNITIONS: <span id="ammo">12</span></div>
-        </div>
-
-        <div id="score-board">KILLS: <span id="kills">0</span></div>
+    <div id="instructions">
+        <h1>ZONE D'INFECTION 3D</h1>
+        <p>CLIQUEZ POUR COMMENCER</p>
+        <p>(ZQSD pour marcher | SOURIS pour regarder | CLIC pour tirer)</p>
     </div>
 
-<script>
-    let hp = 100;
-    let ammo = 12;
-    let kills = 0;
-    let gameActive = true;
+    <div id="ui">ZOMBIES ÉLIMINÉS : <span id="score">0</span></div>
 
-    // Suivre la souris pour le viseur
-    const viewport = document.getElementById('viewport');
-    const crosshair = document.getElementById('crosshair');
-    
-    window.addEventListener('mousemove', (e) => {
-        crosshair.style.left = (e.clientX - 20) + 'px';
-        crosshair.style.top = (e.clientY - 20) + 'px';
-    });
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { PointerLockControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/PointerLockControls.js';
 
-    // Système de tir
-    function shoot() {
-        if (!gameActive || ammo <= 0) return;
+        // --- 1. CONFIGURATION DE LA SCÈNE ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.Fog(0x050505, 0, 50); // Brouillard noir
 
-        ammo--;
-        document.getElementById('ammo').innerText = ammo;
-        
-        // Effet visuel de tir
-        const flash = document.getElementById('flash');
-        flash.style.opacity = '0.3';
-        setTimeout(() => flash.style.opacity = '0', 50);
-        viewport.classList.add('recoil');
-        setTimeout(() => viewport.classList.remove('recoil'), 100);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-        if (ammo === 0) {
-            setTimeout(() => { ammo = 12; document.getElementById('ammo').innerText = ammo; }, 1500); // Recharge auto
-        }
-    }
+        // Lumière
+        const light = new THREE.HemisphereLight(0xeeeeee, 0x888888, 0.5);
+        scene.add(light);
 
-    // Apparition des zombies
-    function spawnZombie() {
-        if (!gameActive) return;
+        // Sol (Grillage sombre)
+        const floorGeometry = new THREE.PlaneGeometry(1000, 1000);
+        const floorMaterial = new THREE.MeshPhongMaterial({ color: 0x111111 });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
 
-        const zombie = document.createElement('div');
-        zombie.className = 'zombie';
-        
-        // Position aléatoire
-        const x = Math.random() * (window.innerWidth - 100);
-        const y = Math.random() * (window.innerHeight - 200) + 100;
-        
-        zombie.style.left = x + 'px';
-        zombie.style.top = y + 'px';
-        zombie.style.transform = 'scale(0.1)'; // Commence loin
+        // --- 2. CONTRÔLES (MOUVEMENT) ---
+        const controls = new PointerLockControls(camera, document.body);
+        const instructions = document.getElementById('instructions');
 
-        zombie.onclick = (e) => {
-            e.stopPropagation(); // Empêche de compter comme un tir dans le vide
-            if (ammo > 0) {
-                kills++;
-                document.getElementById('kills').innerText = kills;
-                zombie.remove();
-            }
+        instructions.addEventListener('click', () => controls.lock());
+        controls.addEventListener('lock', () => instructions.style.display = 'none');
+        controls.addEventListener('unlock', () => instructions.style.display = 'block');
+
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        const onKeyDown = (e) => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = true;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = true;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = true;
         };
+        const onKeyUp = (e) => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = false;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = false;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = false;
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
 
-        viewport.appendChild(zombie);
+        // --- 3. SYSTÈME DE ZOMBIES ---
+        const zombies = [];
+        const zombieGeo = new THREE.BoxGeometry(1, 2, 1);
+        const zombieMat = new THREE.MeshBasicMaterial({ color: 0x730000 });
 
-        // Le zombie s'approche (grossit)
-        let size = 0.1;
-        const approach = setInterval(() => {
-            size += 0.01;
-            zombie.style.transform = `scale(${size})`;
-            
-            if (size >= 1.5) { // Le zombie vous a atteint
-                clearInterval(approach);
-                takeDamage();
-                zombie.remove();
-            }
-        }, 50);
-    }
-
-    function takeDamage() {
-        hp -= 20;
-        document.getElementById('hp-fill').style.width = hp + '%';
-        if (hp <= 0) {
-            gameActive = false;
-            alert("VOUS AVEZ ÉTÉ INFECTÉ. Score final : " + kills);
-            location.reload();
+        function spawnZombie() {
+            const zombie = new THREE.Mesh(zombieGeo, zombieMat);
+            // Apparition aléatoire au loin
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 40;
+            zombie.position.x = Math.cos(angle) * dist;
+            zombie.position.z = Math.sin(angle) * dist;
+            zombie.position.y = 1;
+            scene.add(zombie);
+            zombies.push(zombie);
         }
-    }
 
-    // Lancer le jeu
-    setInterval(spawnZombie, 2000); // Un zombie toutes les 2 secondes
+        setInterval(spawnZombie, 3000); // Un zombie toutes les 3 sec
 
-</script>
+        // --- 4. SYSTÈME DE TIR ---
+        let score = 0;
+        window.addEventListener('mousedown', () => {
+            if (!controls.isLocked) return;
+
+            // On utilise un Raycaster pour voir si on touche un zombie
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(zombies);
+
+            if (intersects.length > 0) {
+                const target = intersects[0].object;
+                scene.remove(target);
+                zombies.splice(zombies.indexOf(target), 1);
+                score++;
+                document.getElementById('score').innerText = score;
+            }
+        });
+
+        // --- 5. BOUCLE D'ANIMATION ---
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (controls.isLocked) {
+                // Mouvement du joueur
+                velocity.x -= velocity.x * 10.0 * 0.016;
+                velocity.z -= velocity.z * 10.0 * 0.016;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * 0.016;
+                if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * 0.016;
+
+                controls.moveRight(-velocity.x * 0.016);
+                controls.moveForward(-velocity.z * 0.016);
+
+                // Mouvement des zombies vers le joueur
+                zombies.forEach(zombie => {
+                    const dir = new THREE.Vector3();
+                    dir.subVectors(camera.position, zombie.position).normalize();
+                    zombie.position.x += dir.x * 0.05;
+                    zombie.position.z += dir.z * 0.05;
+                    
+                    // Si un zombie est trop proche (Game Over)
+                    if (zombie.position.distanceTo(camera.position) < 1.5) {
+                        alert("UN ZOMBIE VOUS A ATTRAPÉ !");
+                        location.reload();
+                    }
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
 </body>
 </html>
