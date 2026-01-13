@@ -1,24 +1,165 @@
-<div class="game-layout">
-    
-    <div class="sidebar">
-        <h2>État Civil</h2>
-        <p>Survivants : <span id="survivors-count">0</span></p>
-        <p>Secteurs sécurisés : <span id="sectors">0</span></p>
-        <hr style="border: 0.5px solid #333">
-        <p>Production d'ADN : <span id="pps">0</span>/s</p>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Survival Clicker</title>
+    <style>
+        /* DESIGN DU JEU */
+        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+        body {
+            background-color: #0d0d0d;
+            background-image: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
+            color: #e0e0e0;
+            font-family: 'Special Elite', serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            width: 100%;
+            max-width: 1200px;
+            border-left: 2px solid #333;
+            border-right: 2px solid #333;
+            background: rgba(10, 10, 10, 0.9);
+        }
+
+        .sidebar { padding: 20px; border-right: 1px solid #222; overflow-y: auto; }
+        .shop { border-left: 1px solid #222; border-right: none; }
+
+        .main-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* Le bouton Zombie */
+        #zombie-target {
+            width: 200px;
+            height: 200px;
+            background: #730000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(115, 0, 0, 0.5);
+            transition: transform 0.05s, box-shadow 0.1s;
+            user-select: none;
+            margin: 20px 0;
+        }
+
+        #zombie-target:active { transform: scale(0.92); box-shadow: 0 0 10px rgba(115, 0, 0, 0.8); }
+
+        .upgrade-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-left: 4px solid #730000;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .upgrade-card:hover { background: #252525; }
+        .upgrade-card.disabled { opacity: 0.4; cursor: not-allowed; }
+
+        h1, h2 { color: #730000; text-transform: uppercase; margin-bottom: 10px; }
+        .dna-counter { font-size: 1.5em; color: #ff4d4d; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="game-layout">
+        <div class="sidebar">
+            <h2>État Civil</h2>
+            <p>Survivants : <span id="survivors-count">0</span></p>
+            <p>Production : <br><span id="pps">0</span> ADN/sec</p>
+        </div>
+
+        <div class="main-area">
+            <h1>Zone d'Infection</h1>
+            <div class="dna-counter" id="score-display">0 ADN Récupéré</div>
+            <div id="zombie-target">💀</div>
+            <p>Cliquez sur le crâne pour récolter l'ADN</p>
+        </div>
+
+        <div class="sidebar shop">
+            <h2>Arsenal</h2>
+            <div id="shop-container"></div>
+        </div>
     </div>
 
-    <div class="main-area">
-        <h1>Infection Level</h1>
-        <div id="score-display">0 ADN Récupéré</div>
-        <div id="zombie-target"></div>
-        <p>Cliquez pour neutraliser la menace</p>
-    </div>
+    <script>
+        // LOGIQUE DU JEU
+        let dna = 0;
+        let pps = 0;
+        let upgrades = [
+            { id: 1, name: "Piège à Loup", cost: 15, power: 0.5, owned: 0 },
+            { id: 2, name: "Sentinelle Armée", cost: 100, power: 3, owned: 0 },
+            { id: 3, name: "Escouade d'Élite", cost: 1100, power: 18, owned: 0 }
+        ];
 
-    <div class="sidebar">
-        <h2>Arsenal</h2>
-        <div id="shop-container">
-            </div>
-    </div>
+        const target = document.getElementById('zombie-target');
+        const scoreDisplay = document.getElementById('score-display');
+        const ppsDisplay = document.getElementById('pps');
+        const shopContainer = document.getElementById('shop-container');
 
-</div>
+        // Clic manuel
+        target.onclick = () => {
+            dna += 1;
+            updateUI();
+        };
+
+        function buyUpgrade(id) {
+            const upg = upgrades.find(u => u.id === id);
+            if (dna >= upg.cost) {
+                dna -= upg.cost;
+                upg.owned++;
+                upg.cost = Math.floor(upg.cost * 1.15);
+                calculatePPS();
+                updateUI();
+            }
+        }
+
+        function calculatePPS() {
+            pps = upgrades.reduce((acc, u) => acc + (u.owned * u.power), 0);
+            document.getElementById('survivors-count').innerText = upgrades.reduce((acc, u) => acc + u.owned, 0);
+        }
+
+        function updateUI() {
+            scoreDisplay.innerText = `${Math.floor(dna)} ADN Récupéré`;
+            ppsDisplay.innerText = pps.toFixed(1);
+            
+            shopContainer.innerHTML = '';
+            upgrades.forEach(upg => {
+                const btn = document.createElement('div');
+                btn.className = `upgrade-card ${dna < upg.cost ? 'disabled' : ''}`;
+                btn.innerHTML = `
+                    <strong>${upg.name} (x${upg.owned})</strong><br>
+                    Prix: ${upg.cost} ADN | +${upg.power}/s
+                `;
+                btn.onclick = () => buyUpgrade(upg.id);
+                shopContainer.appendChild(btn);
+            });
+        }
+
+        // Boucle automatique (10 fois par seconde pour la fluidité)
+        setInterval(() => {
+            dna += pps / 10;
+            updateUI();
+        }, 100);
+
+        // Initialisation
+        updateUI();
+    </script>
+</body>
+</html>
