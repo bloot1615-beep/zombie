@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Z-Hospital : Tactical Survival</title>
+    <title>Z-Hospital : Ultimate Version</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
         #crosshair {
@@ -10,35 +10,28 @@
             border: 2px solid rgba(255, 0, 0, 0.9); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
+        /* Écran d'accueil forcé au premier plan */
         #instructions {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); color: #ff3333;
+            background: rgba(0,0,0,0.95); color: #ff3333;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; z-index: 100; text-align: center;
+            cursor: pointer; z-index: 9999; text-align: center;
         }
-        /* Interface Gauche */
         #ui-left {
             position: absolute; bottom: 20px; left: 20px;
             color: white; font-size: 18px; text-shadow: 1px 1px #000;
             background: rgba(0,0,0,0.8); padding: 15px; border-left: 5px solid #ff0000; z-index: 50;
         }
-        /* NOUVEAU : Barre de Vie Droite */
         #ui-right {
             position: absolute; bottom: 20px; right: 20px;
             background: rgba(0,0,0,0.8); padding: 15px; border-right: 5px solid #00ff00;
             z-index: 50; width: 250px;
         }
-        .hp-container { width: 100%; height: 20px; background: #333; margin-top: 5px; border: 1px solid #555; }
-        #hp-bar { width: 100%; height: 100%; background: #00ff00; transition: width 0.3s; }
-        
-        #wave-announcement {
-            position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
-            color: #ff0000; font-size: 50px; font-weight: bold;
-            display: none; pointer-events: none; text-shadow: 0 0 15px #000; z-index: 50;
-        }
+        .hp-container { width: 100%; height: 20px; background: #333; margin-top: 5px; }
+        #hp-bar { width: 100%; height: 100%; background: #00ff00; transition: width 0.2s; }
         #minimap-container {
             position: absolute; top: 20px; left: 20px;
-            border: 3px solid #444; background: rgba(0, 15, 0, 0.8);
+            border: 2px solid #555; background: rgba(0, 10, 0, 0.8);
             border-radius: 50%; overflow: hidden; z-index: 50;
         }
     </style>
@@ -46,159 +39,144 @@
 <body>
 
     <div id="crosshair"></div>
-    <div id="wave-announcement">VAGUE 1</div>
-    <div id="minimap-container"><canvas id="minimap" width="160" height="160"></canvas></div>
+    <div id="minimap-container"><canvas id="minimap" width="150" height="150"></canvas></div>
 
     <div id="instructions">
-        <h1 style="font-size: 45px; letter-spacing: 5px;">Z-HOSPITAL</h1>
-        <p style="font-size: 20px;">CLIQUEZ POUR JOUER</p>
-        <p style="color: #888;">Utilisez les piliers pour bloquer les zombies !</p>
+        <h1 style="font-size: 40px;">CLIQUEZ ICI POUR LANCER</h1>
+        <p>Si le jeu ne se lance pas, vérifiez votre connexion internet.</p>
+        <p style="color: #666;">(Z-Q-S-D pour bouger)</p>
     </div>
 
     <div id="ui-left">
-        VAGUE : <span id="wave-num">1</span><br>
-        MENACES : <span id="zombie-count">0</span><br>
-        SCORE : <span id="score">0</span>
+        VAGUE : <span id="wave-num">1</span> | SCORE : <span id="score">0</span>
     </div>
 
     <div id="ui-right">
-        <span style="color: white; font-weight: bold;">SURVIVANT (PV)</span>
+        <span style="color: white;">SANTÉ DU JOUEUR</span>
         <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
 
-    <script type="module">
-        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
-        import { PointerLockControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/PointerLockControls.js';
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 
-        // --- SETUP ---
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- 1. SETUP SCÈNE ---
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050805, 0.035);
+        scene.fog = new THREE.FogExp2(0x020502, 0.04);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.y = 1.7;
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // --- LAMPE PUISSANCE MAXIMUM ---
-        const flashLight = new THREE.SpotLight(0xffffff, 15, 100, Math.PI/4.2, 0.3, 1);
+        // --- 2. LUMIÈRE (PROJECTEUR ULTRA PUISSANT) ---
+        // Intensité mise à 25 pour une visibilité totale dans le faisceau
+        const flashLight = new THREE.SpotLight(0xffffff, 25, 120, Math.PI/4, 0.2, 1);
         flashLight.castShadow = true;
         scene.add(flashLight);
         scene.add(flashLight.target);
-        scene.add(new THREE.AmbientLight(0x404040, 0.1));
+        scene.add(new THREE.AmbientLight(0x404040, 0.05));
 
-        // --- MAP ET STRUCTURES ---
-        const mapSize = 250;
-        const walls = []; // Tableau pour stocker les murs (collisions)
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(mapSize, mapSize), new THREE.MeshPhongMaterial({ color: 0x1a1a1a }));
-        floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+        // --- 3. COLLISIONS ET DÉCOR ---
+        const walls = [];
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshPhongMaterial({ color: 0x111111 }));
+        floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
 
-        const wallMat = new THREE.MeshPhongMaterial({ color: 0x2d332d });
-        for(let i = 0; i < 60; i++) {
-            const h = 8;
-            const wall = new THREE.Mesh(new THREE.BoxGeometry(4, h, 4), wallMat);
-            let x = (Math.random() - 0.5) * (mapSize*0.8);
-            let z = (Math.random() - 0.5) * (mapSize*0.8);
-            if (Math.abs(x) < 20 && Math.abs(z) < 20) x += 40;
-            wall.position.set(x, h/2, z); 
-            wall.castShadow = true; wall.receiveShadow = true;
-            scene.add(wall);
-            walls.push(wall); // Ajouter aux obstacles
+        for(let i=0; i<60; i++) {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(4, 10, 4), new THREE.MeshPhongMaterial({ color: 0x222222 }));
+            let x = (Math.random()-0.5)*200; let z = (Math.random()-0.5)*200;
+            if(Math.abs(x) < 20 && Math.abs(z) < 20) x += 40;
+            wall.position.set(x, 5, z); wall.castShadow = true; wall.receiveShadow = true;
+            scene.add(wall); walls.push(wall);
         }
 
-        // --- MINI-MAP ---
-        const mCanvas = document.getElementById('minimap'), mCtx = mCanvas.getContext('2d'), mCenter = 80, mScale = 160 / mapSize;
+        // --- 4. GAMEPLAY ---
+        let playerHP = 100, score = 0, wave = 0, zombies = [];
+        const controls = new PointerLockControls(camera, document.body);
+        const inst = document.getElementById('instructions');
+
+        // FIX LANCEMENT : On cache l'écran AVANT de tenter le lock
+        inst.addEventListener('mousedown', () => {
+            inst.style.display = 'none'; 
+            controls.lock();
+        });
+
+        function spawnWave() {
+            wave++; document.getElementById('wave-num').innerText = wave;
+            for(let i=0; i < (wave * 5); i++) {
+                const isBig = Math.random() > 0.8;
+                const hp = isBig ? 5 : 1;
+                const scale = isBig ? 2.5 : 1.1;
+                const speed = isBig ? 0.02 : 0.06;
+
+                const g = new THREE.Group();
+                const mat = new THREE.MeshLambertMaterial({ color: isBig ? 0x113311 : 0x224422 });
+                const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), mat); b.position.y = 0.6;
+                const h = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat); h.position.y = 1.4;
+                g.add(b, h); g.scale.set(scale, scale, scale);
+
+                const ang = Math.random() * Math.PI * 2;
+                g.position.set(Math.cos(ang)*80, 0, Math.sin(ang)*80);
+                scene.add(g);
+                zombies.push({ mesh: g, hp: hp, speed: speed, radius: 0.8 * scale });
+            }
+        }
+
+        // --- 5. MINI-MAP ---
+        const mCan = document.getElementById('minimap'), mCtx = mCan.getContext('2d');
         function drawMap() {
-            mCtx.clearRect(0,0,160,160);
-            mCtx.fillStyle = 'rgba(0, 30, 0, 0.6)'; mCtx.fillRect(0,0,160,160);
-            mCtx.fillStyle = '#00ff00'; mCtx.beginPath();
-            mCtx.arc(camera.position.x*mScale+mCenter, camera.position.z*mScale+mCenter, 4, 0, Math.PI*2); mCtx.fill();
-            mCtx.fillStyle = '#ff0000';
-            zombies.forEach(z => {
-                mCtx.beginPath();
-                mCtx.arc(z.mesh.position.x*mScale+mCenter, z.mesh.position.z*mScale+mCenter, 3, 0, Math.PI*2); mCtx.fill();
-            });
+            mCtx.fillStyle = 'rgba(0,10,0,0.5)'; mCtx.fillRect(0,0,150,150);
+            // Joueur
+            mCtx.fillStyle = '#0f0'; 
+            mCtx.fillRect(75 + camera.position.x/2, 75 + camera.position.z/2, 4, 4);
+            // Zombies
+            mCtx.fillStyle = '#f00';
+            zombies.forEach(z => mCtx.fillRect(75 + z.mesh.position.x/2, 75 + z.mesh.position.z/2, 3, 3));
         }
 
-        // --- GAMEPLAY ---
-        let wave = 0, score = 0, zombies = [], zombiesToSpawn = 0, playerHP = 100;
-        const zombieMat = new THREE.MeshLambertMaterial({ color: 0x224422 });
-
-        function createZModel(scale) {
-            const g = new THREE.Group();
-            const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), zombieMat.clone()); b.position.y = 0.6;
-            const h = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), zombieMat.clone()); h.position.y = 1.4;
-            const a = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.8), zombieMat.clone()); a.position.set(0.3, 1.2, 0.4);
-            const a2 = a.clone(); a2.position.x = -0.3;
-            g.add(b, h, a, a2); g.scale.set(scale, scale, scale); return g;
-        }
-
-        function startWave() {
-            wave++; zombiesToSpawn = wave * 6;
-            document.getElementById('wave-num').innerText = wave;
-            const msg = document.getElementById('wave-announcement');
-            msg.style.display = 'block'; setTimeout(()=>msg.style.display='none', 2500);
-            const timer = setInterval(() => {
-                if(zombiesToSpawn > 0) { 
-                    const rand = Math.random();
-                    let hp = (rand > 0.8) ? 3 : 1, scale = (rand > 0.8) ? 1.8 : 1.1, speed = (rand > 0.8) ? 0.025 : 0.05;
-                    const z = createZModel(scale);
-                    const ang = Math.random() * Math.PI * 2;
-                    z.position.set(Math.cos(ang)*70, 0, Math.sin(ang)*70);
-                    scene.add(z);
-                    zombies.push({ mesh: z, hp: hp, speed: speed + (wave * 0.003), radius: 0.5 * scale });
-                    zombiesToSpawn--; updateUI();
-                } else clearInterval(timer);
-            }, 800);
-        }
-
-        function updateUI() {
-            document.getElementById('zombie-count').innerText = zombies.length + zombiesToSpawn;
-            document.getElementById('score').innerText = score;
-            const hpBar = document.getElementById('hp-bar');
-            hpBar.style.width = playerHP + "%";
-            if(playerHP < 30) hpBar.style.background = "#ff0000";
-        }
-
+        // --- 6. TIR ET COLLISIONS MURS ---
         window.addEventListener('mousedown', () => {
             if(!controls.isLocked) return;
             const ray = new THREE.Raycaster();
             ray.setFromCamera(new THREE.Vector2(0,0), camera);
-            let targets = []; zombies.forEach(z => targets.push(...z.mesh.children));
-            const hit = ray.intersectObjects(targets);
-            if(hit.length > 0) {
-                const group = hit[0].object.parent;
-                const zData = zombies.find(z => z.mesh === group);
-                if(zData) {
-                    zData.hp--;
-                    group.children.forEach(p => p.material.emissive.setHex(0x440000));
-                    setTimeout(() => group.children.forEach(p => p.material.emissive.setHex(0x000000)), 100);
-                    if(zData.hp <= 0) {
-                        scene.remove(group);
-                        zombies.splice(zombies.indexOf(zData), 1);
-                        score += 15;
-                        if(zombies.length === 0 && zombiesToSpawn === 0) setTimeout(startWave, 2500);
+            const intersects = ray.intersectObjects(scene.children, true);
+            for(let res of intersects) {
+                let obj = res.object;
+                while(obj.parent && obj.type !== 'Group') obj = obj.parent;
+                const z = zombies.find(z => z.mesh === obj);
+                if(z) {
+                    z.hp--;
+                    if(z.hp <= 0) {
+                        scene.remove(z.mesh);
+                        zombies.splice(zombies.indexOf(z), 1);
+                        score += 10; document.getElementById('score').innerText = score;
+                        if(zombies.length === 0) spawnWave();
                     }
-                    updateUI();
+                    break;
                 }
             }
         });
 
-        // --- BOUCLE ET COLLISIONS ---
-        const controls = new PointerLockControls(camera, document.body);
-        document.getElementById('instructions').addEventListener('click', () => { controls.lock(); document.getElementById('instructions').style.display='none'; });
         let keys = {};
-        document.addEventListener('keydown', (e) => keys[e.code] = true);
-        document.addEventListener('keyup', (e) => keys[e.code] = false);
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
 
         function animate() {
             requestAnimationFrame(animate);
             if(controls.isLocked) {
-                const s = 0.15;
-                if(keys['KeyW'] || keys['KeyZ']) controls.moveForward(s);
-                if(keys['KeyS']) controls.moveForward(-s);
-                if(keys['KeyA'] || keys['KeyQ']) controls.moveRight(-s);
-                if(keys['KeyD']) controls.moveRight(s);
+                if(keys['KeyW'] || keys['KeyZ']) controls.moveForward(0.15);
+                if(keys['KeyS']) controls.moveForward(-0.15);
+                if(keys['KeyA'] || keys['KeyQ']) controls.moveRight(-0.15);
+                if(keys['KeyD']) controls.moveRight(0.15);
 
                 flashLight.position.copy(camera.position);
                 const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
@@ -206,38 +184,30 @@
 
                 zombies.forEach(z => {
                     z.mesh.lookAt(camera.position.x, 0, camera.position.z);
-                    const moveDir = new THREE.Vector3().subVectors(camera.position, z.mesh.position).setY(0).normalize();
+                    const v = new THREE.Vector3().subVectors(camera.position, z.mesh.position).setY(0).normalize();
                     
-                    // NOUVEAU : Détection de collision avec les murs pour les zombies
-                    let nextPos = z.mesh.position.clone().add(moveDir.clone().multiplyScalar(z.speed));
-                    let collision = false;
-                    for(let wall of walls) {
-                        // On vérifie si le zombie entre dans la zone du mur (Box 4x4)
-                        if(Math.abs(nextPos.x - wall.position.x) < 2.5 && Math.abs(nextPos.z - wall.position.z) < 2.5) {
-                            collision = true; break;
+                    // COLLISION ZOMBIE / MUR
+                    let nextPos = z.mesh.position.clone().add(v.multiplyScalar(z.speed));
+                    let hitWall = false;
+                    for(let w of walls) {
+                        if(Math.abs(nextPos.x - w.position.x) < 2.8 && Math.abs(nextPos.z - w.position.z) < 2.8) {
+                            hitWall = true; break;
                         }
                     }
+                    if(!hitWall) z.mesh.position.copy(nextPos);
 
-                    if(!collision) {
-                        z.mesh.position.copy(nextPos);
-                    }
-
-                    // Dégâts au joueur
-                    if(z.mesh.position.distanceTo(camera.position) < 1.6) {
-                        playerHP -= 0.5; // Dégâts continus si trop proche
-                        updateUI();
-                        if(playerHP <= 0) {
-                            controls.unlock();
-                            alert("VOUS AVEZ SUCCOMBÉ. SCORE: " + score);
-                            location.reload();
-                        }
+                    // DEGATS JOUEUR
+                    if(z.mesh.position.distanceTo(camera.position) < 1.8) {
+                        playerHP -= 0.3;
+                        document.getElementById('hp-bar').style.width = playerHP + "%";
+                        if(playerHP <= 0) location.reload();
                     }
                 });
                 drawMap();
             }
             renderer.render(scene, camera);
         }
-        startWave(); animate();
+        spawnWave(); animate();
     </script>
 </body>
 </html>
