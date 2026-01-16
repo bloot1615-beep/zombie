@@ -2,83 +2,66 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Z-TRON : SYSTEM SETTINGS</title>
+    <title>Z-TRON : REBOOT</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; color: #0f0; }
         
         #crosshair {
             position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
             border: 2px solid #0f0; transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
-            box-shadow: 0 0 10px #0f0;
         }
 
-        /* Menus (Accueil et Pause) */
-        .overlay {
+        /* Menu de démarrage et pause */
+        #menu-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); color: #0f0;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 9999; text-align: center; border: 2px solid #0f0;
-            box-shadow: inset 0 0 50px #0f0;
+            z-index: 100; text-align: center; border: 4px solid #0f0;
+            box-sizing: border-box;
         }
 
-        .settings-panel {
-            background: rgba(0, 20, 0, 0.9); border: 1px solid #0f0;
-            padding: 20px; margin-top: 20px; width: 350px;
+        .settings-box {
+            background: rgba(0, 30, 0, 0.9); border: 1px solid #0f0;
+            padding: 20px; margin: 20px; width: 320px; pointer-events: auto;
         }
 
         .setting-row { margin: 15px 0; text-align: left; }
-        .setting-row label { display: block; font-size: 12px; margin-bottom: 5px; }
+        label { display: block; font-size: 14px; margin-bottom: 5px; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: #0f0; }
 
-        input[type=range] { width: 100%; accent-color: #0f0; cursor: pointer; }
-
-        .cyber-button {
-            margin-top: 20px; padding: 12px 30px; cursor: pointer; background: none; 
-            color: #0f0; border: 2px solid #0f0; font-family: inherit; font-size: 20px;
-            text-shadow: 0 0 5px #0f0; transition: 0.3s;
+        #start-btn {
+            padding: 15px 40px; cursor: pointer; background: #0f0; 
+            color: #000; border: none; font-family: inherit; font-size: 24px;
+            font-weight: bold; box-shadow: 0 0 20px #0f0; transition: 0.2s;
         }
-        .cyber-button:hover { background: #0f0; color: #000; }
+        #start-btn:hover { transform: scale(1.1); box-shadow: 0 0 40px #0f0; }
 
-        /* UI en jeu */
-        #ui-left { position: absolute; bottom: 20px; left: 20px; background: rgba(0,20,0,0.8); padding: 15px; border: 1px solid #0f0; z-index: 50; }
-        #ui-right { position: absolute; bottom: 20px; right: 20px; background: rgba(0,20,0,0.8); padding: 15px; border: 1px solid #0f0; z-index: 50; width: 200px; }
-        .hp-bar-bg { width: 100%; height: 15px; background: #000; border: 1px solid #0f0; margin-top: 5px; }
-        #hp-bar-fill { width: 100%; height: 100%; background: #0f0; transition: 0.2s; }
+        #ui { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #0f0; z-index: 50; }
     </style>
 </head>
 <body>
 
     <div id="crosshair"></div>
 
-    <div id="menu" class="overlay">
-        <h1 id="menu-title">Z-TRON PROTOCOL</h1>
+    <div id="menu-overlay">
+        <h1 id="title">Z-TRON : SYSTEM READY</h1>
         
-        <div class="settings-panel">
+        <div class="settings-box">
             <div class="setting-row">
-                <label>SENSIBILITÉ SOURIS : <span id="val-sens">0.5</span></label>
-                <input type="range" id="sensSlider" min="0.1" max="2.0" step="0.1" value="0.5">
+                <label>SENSIBILITÉ : <span id="v-sens">0.5</span></label>
+                <input type="range" id="s-sens" min="0.1" max="2.0" step="0.1" value="0.5">
             </div>
             <div class="setting-row">
-                <label>CHAMP DE VISION (FOV) : <span id="val-fov">75</span></label>
-                <input type="range" id="fovSlider" min="40" max="110" step="5" value="75">
-            </div>
-            <div class="setting-row">
-                <label>LUMINOSITÉ NÉON : <span id="val-light">1.0</span></label>
-                <input type="range" id="lightSlider" min="0.1" max="3.0" step="0.1" value="1.0">
+                <label>CHAMP DE VISION : <span id="v-fov">75</span></label>
+                <input type="range" id="s-fov" min="50" max="110" step="5" value="75">
             </div>
         </div>
 
-        <button id="start-btn" class="cyber-button">INITIALISER</button>
-        <p style="font-size: 10px; margin-top: 15px;">ECHAP pour mettre en PAUSE</p>
+        <button id="start-btn">LANCER LE PROTOCOLE</button>
+        <p style="margin-top:20px; font-size: 12px;">(Appuyez sur ECHAP pour mettre en pause)</p>
     </div>
 
-    <div id="ui-left">
-        CYCLE : <span id="wave-val">1</span> | DATA : <span id="coin-val">0</span>
-    </div>
-
-    <div id="ui-right">
-        <span style="font-size: 12px;">INTÉGRITÉ</span>
-        <div class="hp-bar-bg"><div id="hp-bar-fill"></div></div>
-    </div>
+    <div id="ui">VAGUE : <span id="wv">1</span> | DATA : <span id="coins">0</span></div>
 
     <script type="importmap">
         {
@@ -93,78 +76,52 @@
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // --- SETUP ---
-        let player = { hp: 100, coins: 0, wave: 0 };
-        let zombies = [];
-        const walls = [];
-
+        // --- INITIALISATION ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
-        scene.fog = new THREE.FogExp2(0x000000, 0.02); 
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.8, 0);
+        camera.position.set(0, 1.8, 5);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-        scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
-        // --- MAP GÉNÉRATION ---
-        const grid = new THREE.GridHelper(400, 100, 0x00ff00, 0x004400);
-        scene.add(grid);
+        // --- DÉCOR TRON ---
+        scene.add(new THREE.GridHelper(400, 100, 0x00ff00, 0x003300));
+        const wallGeo = new THREE.BoxGeometry(4, 8, 4);
+        const wallMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x00ff00 });
 
-        const wallBodyMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-        const wallLineMat = new THREE.LineBasicMaterial({ color: 0x00ff00 });
-
-        for(let i=0; i<60; i++) {
-            const w = 3+Math.random()*4; const h = 4+Math.random()*10; const d = 3+Math.random()*4;
-            const geo = new THREE.BoxGeometry(w, h, d);
-            const mesh = new THREE.Mesh(geo, wallBodyMat);
-            let x = (Math.random()-0.5)*250; let z = (Math.random()-0.5)*250;
-            if(Math.abs(x)<15 && Math.abs(z)<15) x+=40;
-            mesh.position.set(x, h/2, z);
-            const edges = new THREE.EdgesGeometry(geo);
-            mesh.add(new THREE.LineSegments(edges, wallLineMat));
+        for(let i=0; i<50; i++) {
+            const mesh = new THREE.Mesh(wallGeo, wallMat);
+            const x = (Math.random()-0.5)*200; const z = (Math.random()-0.5)*200;
+            if(Math.abs(x)<10 && Math.abs(z)<10) continue;
+            mesh.position.set(x, 4, z);
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(wallGeo), lineMat));
             scene.add(mesh);
-            walls.push(mesh);
         }
 
-        // --- RÉGLAGES DYNAMIQUES ---
+        // --- PARAMÈTRES ET PAUSE ---
         const controls = new PointerLockControls(camera, document.body);
-        controls.pointerSpeed = 0.5; // Réduction initiale de la sensibilité
+        controls.pointerSpeed = 0.5; // Sensibilité réduite par défaut
 
-        const sensSlider = document.getElementById('sensSlider');
-        const fovSlider = document.getElementById('fovSlider');
-        const lightSlider = document.getElementById('lightSlider');
-
-        sensSlider.oninput = (e) => {
-            const val = e.target.value;
-            controls.pointerSpeed = val;
-            document.getElementById('val-sens').innerText = val;
-        };
-
-        fovSlider.oninput = (e) => {
-            const val = e.target.value;
-            camera.fov = val;
-            camera.updateProjectionMatrix();
-            document.getElementById('val-fov').innerText = val;
-        };
-
-        lightSlider.oninput = (e) => {
-            const val = e.target.value;
-            ambientLight.intensity = val;
-            document.getElementById('val-light').innerText = val;
-        };
-
-        // --- GESTION PAUSE ---
-        const menu = document.getElementById('menu');
+        const menu = document.getElementById('menu-overlay');
         const startBtn = document.getElementById('start-btn');
-        const menuTitle = document.getElementById('menu-title');
+        const sSens = document.getElementById('s-sens');
+        const sFov = document.getElementById('s-fov');
 
-        startBtn.onclick = () => controls.lock();
+        // Changement de paramètres
+        sSens.oninput = (e) => { controls.pointerSpeed = e.target.value; document.getElementById('v-sens').innerText = e.target.value; };
+        sFov.oninput = (e) => { camera.fov = e.target.value; camera.updateProjectionMatrix(); document.getElementById('v-fov').innerText = e.target.value; };
+
+        // Démarrage
+        startBtn.onclick = () => {
+            controls.lock();
+        };
 
         controls.addEventListener('lock', () => {
             menu.style.display = 'none';
@@ -172,23 +129,24 @@
 
         controls.addEventListener('unlock', () => {
             menu.style.display = 'flex';
-            menuTitle.innerText = "SYSTÈME EN PAUSE";
+            document.getElementById('title').innerText = "PAUSE SYSTÈME";
             startBtn.innerText = "REPRENDRE";
         });
 
-        // --- GAMEPLAY ---
-        function spawnWave() {
-            player.wave++; document.getElementById('wave-val').innerText = player.wave;
-            for(let i=0; i < (4 + player.wave * 2); i++) {
-                const zGroup = new THREE.Group();
-                const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-                const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), mat); b.position.y = 0.6;
-                const h = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat); h.position.y = 1.4;
-                zGroup.add(b, h);
-                const ang = Math.random()*Math.PI*2; const dist = 60+Math.random()*40;
-                zGroup.position.set(Math.cos(ang)*dist, 0, Math.sin(ang)*dist);
-                scene.add(zGroup);
-                zombies.push({ mesh: zGroup, hp: 2, speed: 0.05 + (player.wave*0.005) });
+        // --- GAMEPLAY ZOMBIES ---
+        let zombies = [];
+        let coins = 0, wave = 1;
+
+        function spawn() {
+            for(let i=0; i < (4 + wave * 2); i++) {
+                const z = new THREE.Group();
+                const m = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                z.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), m));
+                z.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), m).setRotationFromEuler(new THREE.Euler(0,0,0)).translateX(0).translateY(1.4));
+                const a = Math.random()*Math.PI*2; const d = 50+Math.random()*20;
+                z.position.set(Math.cos(a)*d, 0, Math.sin(a)*d);
+                scene.add(z);
+                zombies.push({ mesh: z, hp: 2 });
             }
         }
 
@@ -200,6 +158,42 @@
             if(hits.length > 0) {
                 let obj = hits[0].object;
                 while(obj.parent && obj.type !== 'Group') obj = obj.parent;
-                const zIdx = zombies.findIndex(z => z.mesh === obj);
-                if(zIdx !== -1) {
-                    z
+                const idx = zombies.findIndex(z => z.mesh === obj);
+                if(idx !== -1) {
+                    zombies[idx].hp--;
+                    if(zombies[idx].hp <= 0) {
+                        scene.remove(zombies[idx].mesh);
+                        zombies.splice(idx, 1);
+                        coins += 10; document.getElementById('coins').innerText = coins;
+                        if(zombies.length === 0) { wave++; document.getElementById('wv').innerText = wave; spawn(); }
+                    }
+                }
+            }
+        });
+
+        // --- BOUCLE ---
+        let keys = {};
+        window.onkeydown = (e) => keys[e.code] = true;
+        window.onkeyup = (e) => keys[e.code] = false;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(controls.isLocked) {
+                const s = 0.15;
+                if(keys['KeyW'] || keys['KeyZ']) controls.moveForward(s);
+                if(keys['KeyS']) controls.moveForward(-s);
+                if(keys['KeyA'] || keys['KeyQ']) controls.moveRight(-s);
+                if(keys['KeyD']) controls.moveRight(s);
+
+                zombies.forEach(z => {
+                    z.mesh.lookAt(camera.position.x, 0, camera.position.z);
+                    const v = new THREE.Vector3().subVectors(camera.position, z.mesh.position).setY(0).normalize();
+                    z.mesh.position.add(v.multiplyScalar(0.04 + wave*0.005));
+                });
+            }
+            renderer.render(scene, camera);
+        }
+        spawn(); animate();
+    </script>
+</body>
+</html>
