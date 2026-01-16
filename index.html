@@ -2,62 +2,81 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Z-TRON : CYBER SURVIVAL</title>
+    <title>Z-TRON : SYSTEM SETTINGS</title>
     <style>
-        /* Style global Cyberpunk */
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; color: #0f0; }
         
         #crosshair {
             position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
             border: 2px solid #0f0; transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
-            box-shadow: 0 0 10px #0f0; /* Effet néon */
+            box-shadow: 0 0 10px #0f0;
         }
-        
-        /* Interface d'accueil style Terminal */
-        #instructions {
+
+        /* Menus (Accueil et Pause) */
+        .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); color: #0f0;
+            background: rgba(0,0,0,0.9); color: #0f0;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 9999; text-align: center; border: 2px solid #0f0;
             box-shadow: inset 0 0 50px #0f0;
         }
-        
-        h1 { text-shadow: 0 0 20px #0f0; font-size: 50px; margin-bottom: 10px; }
-        
-        .cyber-button {
-            margin-top: 30px; padding: 15px 40px; cursor: pointer; background: none; 
-            color: #0f0; border: 2px solid #0f0; font-family: inherit; font-size: 24px;
-            text-shadow: 0 0 5px #0f0; box-shadow: 0 0 10px #0f0; transition: 0.3s;
+
+        .settings-panel {
+            background: rgba(0, 20, 0, 0.9); border: 1px solid #0f0;
+            padding: 20px; margin-top: 20px; width: 350px;
         }
-        .cyber-button:hover { background: #0f0; color: #000; box-shadow: 0 0 30px #0f0; }
+
+        .setting-row { margin: 15px 0; text-align: left; }
+        .setting-row label { display: block; font-size: 12px; margin-bottom: 5px; }
+
+        input[type=range] { width: 100%; accent-color: #0f0; cursor: pointer; }
+
+        .cyber-button {
+            margin-top: 20px; padding: 12px 30px; cursor: pointer; background: none; 
+            color: #0f0; border: 2px solid #0f0; font-family: inherit; font-size: 20px;
+            text-shadow: 0 0 5px #0f0; transition: 0.3s;
+        }
+        .cyber-button:hover { background: #0f0; color: #000; }
 
         /* UI en jeu */
-        #ui-left { position: absolute; bottom: 20px; left: 20px; background: rgba(0,20,0,0.8); padding: 15px; border: 2px solid #0f0; z-index: 50; box-shadow: 0 0 10px #0f0; }
-        #ui-right { position: absolute; bottom: 20px; right: 20px; background: rgba(0,20,0,0.8); padding: 15px; border: 2px solid #0f0; z-index: 50; width: 220px; box-shadow: 0 0 10px #0f0; }
-        .hp-bar-bg { width: 100%; height: 20px; background: #000; border: 1px solid #0f0; margin-top: 5px; }
-        #hp-bar-fill { width: 100%; height: 100%; background: #0f0; box-shadow: 0 0 15px #0f0; transition: 0.2s; }
-        #minimap-container { position: absolute; top: 20px; left: 20px; border: 3px solid #0f0; background: #000; border-radius: 50%; overflow: hidden; z-index: 50; box-shadow: 0 0 20px #0f0; }
+        #ui-left { position: absolute; bottom: 20px; left: 20px; background: rgba(0,20,0,0.8); padding: 15px; border: 1px solid #0f0; z-index: 50; }
+        #ui-right { position: absolute; bottom: 20px; right: 20px; background: rgba(0,20,0,0.8); padding: 15px; border: 1px solid #0f0; z-index: 50; width: 200px; }
+        .hp-bar-bg { width: 100%; height: 15px; background: #000; border: 1px solid #0f0; margin-top: 5px; }
+        #hp-bar-fill { width: 100%; height: 100%; background: #0f0; transition: 0.2s; }
     </style>
 </head>
 <body>
 
     <div id="crosshair"></div>
-    <div id="minimap-container"><canvas id="minimap" width="150" height="150"></canvas></div>
 
-    <div id="instructions">
-        <h1>Z-TRON PROTOCOL</h1>
-        <p>INITIALISATION DE LA GRILLE...</p>
-        <p style="font-size: 14px;">(Éliminez les programmes corrompus. ZQSD pour bouger.)</p>
-        <button id="start-btn" class="cyber-button">ENTRER DANS LE SYSTÈME</button>
+    <div id="menu" class="overlay">
+        <h1 id="menu-title">Z-TRON PROTOCOL</h1>
+        
+        <div class="settings-panel">
+            <div class="setting-row">
+                <label>SENSIBILITÉ SOURIS : <span id="val-sens">0.5</span></label>
+                <input type="range" id="sensSlider" min="0.1" max="2.0" step="0.1" value="0.5">
+            </div>
+            <div class="setting-row">
+                <label>CHAMP DE VISION (FOV) : <span id="val-fov">75</span></label>
+                <input type="range" id="fovSlider" min="40" max="110" step="5" value="75">
+            </div>
+            <div class="setting-row">
+                <label>LUMINOSITÉ NÉON : <span id="val-light">1.0</span></label>
+                <input type="range" id="lightSlider" min="0.1" max="3.0" step="0.1" value="1.0">
+            </div>
+        </div>
+
+        <button id="start-btn" class="cyber-button">INITIALISER</button>
+        <p style="font-size: 10px; margin-top: 15px;">ECHAP pour mettre en PAUSE</p>
     </div>
 
     <div id="ui-left">
-        CYCLE : <span id="wave-val">1</span> | DATA : <span id="coin-val">0</span><br>
-        ARME : <span id="weapon-name">Laser Standard</span>
+        CYCLE : <span id="wave-val">1</span> | DATA : <span id="coin-val">0</span>
     </div>
 
     <div id="ui-right">
-        <span style="font-size: 14px;">INTÉGRITÉ SYSTÈME</span>
+        <span style="font-size: 12px;">INTÉGRITÉ</span>
         <div class="hp-bar-bg"><div id="hp-bar-fill"></div></div>
     </div>
 
@@ -74,15 +93,13 @@
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // --- VARIABLES ---
-        let player = { hp: 100, coins: 0, wave: 0, weaponDmg: 1 };
+        // --- SETUP ---
+        let player = { hp: 100, coins: 0, wave: 0 };
         let zombies = [];
-        const walls = []; // Pour les collisions
+        const walls = [];
 
-        // --- SCÈNE TRON ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000); // Fond noir total
-        // Brouillard noir pour fondre les objets au loin
+        scene.background = new THREE.Color(0x000000);
         scene.fog = new THREE.FogExp2(0x000000, 0.02); 
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -90,87 +107,91 @@
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        // Pas besoin d'ombres dans Tron, tout brille
-        renderer.shadowMap.enabled = false; 
         document.body.appendChild(renderer.domElement);
 
-        // Éclairage : Lumière ambiante forte pour faire ressortir les couleurs néon
-        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        scene.add(ambientLight);
 
-        // --- GÉNÉRATION DE LA MAP TRON ---
-        
-        // 1. Le Sol : Une grille infinie
-        // GridHelper(taille, divisions, couleur_centre, couleur_grille)
+        // --- MAP GÉNÉRATION ---
         const grid = new THREE.GridHelper(400, 100, 0x00ff00, 0x004400);
         scene.add(grid);
-        // Un sol noir uni juste en dessous pour ne pas voir à travers la grille
-        const floorPlane = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshBasicMaterial({color: 0x000000}));
-        floorPlane.rotation.x = -Math.PI/2;
-        floorPlane.position.y = -0.1;
-        scene.add(floorPlane);
 
-        // 2. Les Structures Néon (Murs)
-        // Matériau noir pour le corps du mur
         const wallBodyMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-        // Matériau vert brillant pour les arêtes
-        const wallLineMat = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 2 });
+        const wallLineMat = new THREE.LineBasicMaterial({ color: 0x00ff00 });
 
-        for(let i=0; i<80; i++) {
-            // Géométrie de base (cube allongé)
-            const w = 2 + Math.random()*5; const h = 5 + Math.random()*15; const d = 2 + Math.random()*5;
+        for(let i=0; i<60; i++) {
+            const w = 3+Math.random()*4; const h = 4+Math.random()*10; const d = 3+Math.random()*4;
             const geo = new THREE.BoxGeometry(w, h, d);
-            
-            // Le mesh noir (pour bloquer la vue)
             const mesh = new THREE.Mesh(geo, wallBodyMat);
-            
-            // Position aléatoire sur la grille
-            let x = (Math.random()-0.5)*300; let z = (Math.random()-0.5)*300;
-            if(Math.abs(x)<20 && Math.abs(z)<20) x+=50; // Zone de départ safe
+            let x = (Math.random()-0.5)*250; let z = (Math.random()-0.5)*250;
+            if(Math.abs(x)<15 && Math.abs(z)<15) x+=40;
             mesh.position.set(x, h/2, z);
-            
-            // CRUCIAL : Créer les lignes brillantes (EdgesGeometry)
             const edges = new THREE.EdgesGeometry(geo);
-            const line = new THREE.LineSegments(edges, wallLineMat);
-            // On ajoute les lignes comme "enfant" du mesh noir
-            mesh.add(line); 
-
+            mesh.add(new THREE.LineSegments(edges, wallLineMat));
             scene.add(mesh);
-            walls.push(mesh); // Ajout pour collision
+            walls.push(mesh);
         }
 
-        // --- ZOMBIES CYBER ---
+        // --- RÉGLAGES DYNAMIQUES ---
+        const controls = new PointerLockControls(camera, document.body);
+        controls.pointerSpeed = 0.5; // Réduction initiale de la sensibilité
+
+        const sensSlider = document.getElementById('sensSlider');
+        const fovSlider = document.getElementById('fovSlider');
+        const lightSlider = document.getElementById('lightSlider');
+
+        sensSlider.oninput = (e) => {
+            const val = e.target.value;
+            controls.pointerSpeed = val;
+            document.getElementById('val-sens').innerText = val;
+        };
+
+        fovSlider.oninput = (e) => {
+            const val = e.target.value;
+            camera.fov = val;
+            camera.updateProjectionMatrix();
+            document.getElementById('val-fov').innerText = val;
+        };
+
+        lightSlider.oninput = (e) => {
+            const val = e.target.value;
+            ambientLight.intensity = val;
+            document.getElementById('val-light').innerText = val;
+        };
+
+        // --- GESTION PAUSE ---
+        const menu = document.getElementById('menu');
+        const startBtn = document.getElementById('start-btn');
+        const menuTitle = document.getElementById('menu-title');
+
+        startBtn.onclick = () => controls.lock();
+
+        controls.addEventListener('lock', () => {
+            menu.style.display = 'none';
+        });
+
+        controls.addEventListener('unlock', () => {
+            menu.style.display = 'flex';
+            menuTitle.innerText = "SYSTÈME EN PAUSE";
+            startBtn.innerText = "REPRENDRE";
+        });
+
+        // --- GAMEPLAY ---
         function spawnWave() {
             player.wave++; document.getElementById('wave-val').innerText = player.wave;
-            for(let i=0; i < (5 + player.wave * 2); i++) {
+            for(let i=0; i < (4 + player.wave * 2); i++) {
                 const zGroup = new THREE.Group();
-                // Matériau "Basic" vert néon : ça brille tout seul, pas besoin de lumière
-                const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: false });
-                
-                // Modèle simple (robotique)
+                const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
                 const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), mat); b.position.y = 0.6;
                 const h = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat); h.position.y = 1.4;
-                // Ajout d'un "œil" rouge brillant
-                const eye = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.1), new THREE.MeshBasicMaterial({color: 0xff0000}));
-                eye.position.set(0, 1.45, 0.2);
-                zGroup.add(b, h, eye);
-                
-                const ang = Math.random() * Math.PI * 2;
-                const dist = 50 + Math.random()*50;
+                zGroup.add(b, h);
+                const ang = Math.random()*Math.PI*2; const dist = 60+Math.random()*40;
                 zGroup.position.set(Math.cos(ang)*dist, 0, Math.sin(ang)*dist);
                 scene.add(zGroup);
-                zombies.push({ mesh: zGroup, hp: 2, speed: 0.05 + (player.wave * 0.005) });
+                zombies.push({ mesh: zGroup, hp: 2, speed: 0.05 + (player.wave*0.005) });
             }
         }
 
-        // --- CONTRÔLES ---
-        const controls = new PointerLockControls(camera, document.body);
-        document.getElementById('start-btn').onclick = () => {
-            document.getElementById('instructions').style.display = 'none';
-            controls.lock();
-            if(player.wave === 0) spawnWave();
-        };
-
-        // Collision et Tir
         window.addEventListener('mousedown', () => {
             if(!controls.isLocked) return;
             const ray = new THREE.Raycaster();
@@ -181,85 +202,4 @@
                 while(obj.parent && obj.type !== 'Group') obj = obj.parent;
                 const zIdx = zombies.findIndex(z => z.mesh === obj);
                 if(zIdx !== -1) {
-                    zombies[zIdx].hp -= player.weaponDmg;
-                    // Effet visuel d'impact (flash blanc)
-                    obj.children.forEach(c => { if(c.material) c.material.color.setHex(0xffffff); });
-                    setTimeout(() => {
-                         if(zombies[zIdx]) {
-                             obj.children[0].material.color.setHex(0x00ff00); // Corps vert
-                             obj.children[1].material.color.setHex(0x00ff00); // Tête verte
-                             obj.children[2].material.color.setHex(0xff0000); // Œil rouge
-                         }
-                    }, 100);
-
-                    if(zombies[zIdx].hp <= 0) {
-                        scene.remove(zombies[zIdx].mesh);
-                        zombies.splice(zIdx, 1);
-                        player.coins += 10; document.getElementById('coin-val').innerText = player.coins;
-                        if(zombies.length === 0) setTimeout(spawnWave, 2000);
-                    }
-                }
-            }
-        });
-
-        // --- MINI-MAP CYBER ---
-        const mCtx = document.getElementById('minimap').getContext('2d');
-        function drawMap() {
-            // Fond noir avec grille verte
-            mCtx.fillStyle = '#000'; mCtx.fillRect(0,0,150,150);
-            mCtx.strokeStyle = '#004400'; mCtx.lineWidth = 1; mCtx.beginPath();
-            for(let i=0;i<150;i+=20){ mCtx.moveTo(i,0);mCtx.lineTo(i,150);mCtx.moveTo(0,i);mCtx.lineTo(150,i); } mCtx.stroke();
-            
-            // Joueur (Triangle blanc)
-            mCtx.fillStyle = '#fff'; 
-            const px = 75 + camera.position.x/3; const py = 75 + camera.position.z/3;
-            mCtx.beginPath(); mCtx.moveTo(px, py-5); mCtx.lineTo(px+4, py+4); mCtx.lineTo(px-4, py+4); mCtx.fill();
-
-            // Zombies (Carrés rouges brillants)
-            mCtx.fillStyle = '#f00'; mCtx.shadowColor = '#f00'; mCtx.shadowBlur = 10;
-            zombies.forEach(z => mCtx.fillRect(73 + z.mesh.position.x/3, 73 + z.mesh.position.z/3, 4, 4));
-            mCtx.shadowBlur = 0; // Reset shadow
-        }
-
-        // --- BOUCLE PRINCIPALE ---
-        let keys = {};
-        window.onkeydown = (e) => keys[e.code] = true;
-        window.onkeyup = (e) => keys[e.code] = false;
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if(controls.isLocked) {
-                if(keys['KeyW'] || keys['KeyZ']) controls.moveForward(0.18);
-                if(keys['KeyS']) controls.moveForward(-0.18);
-                if(keys['KeyA'] || keys['KeyQ']) controls.moveRight(-0.18);
-                if(keys['KeyD']) controls.moveRight(0.18);
-
-                zombies.forEach(z => {
-                    z.mesh.lookAt(camera.position.x, 0, camera.position.z);
-                    let v = new THREE.Vector3().subVectors(camera.position, z.mesh.position).setY(0).normalize();
-                    let next = z.mesh.position.clone().add(v.clone().multiplyScalar(z.speed));
-                    
-                    // Collision simple avec les structures Tron
-                    let hitWall = false;
-                    for(let w of walls) {
-                         // On utilise la boîte englobante (Bounding Box) pour plus de précision
-                         const wallBox = new THREE.Box3().setFromObject(w);
-                         if(wallBox.containsPoint(next)) { hitWall = true; break; }
-                    }
-
-                    if(!hitWall) z.mesh.position.copy(next);
-
-                    if(z.mesh.position.distanceTo(camera.position) < 1.5) {
-                        player.hp -= 0.8;
-                        document.getElementById('hp-bar-fill').style.width = player.hp + "%";
-                        if(player.hp <= 0) location.reload();
-                    }
-                });
-                drawMap();
-            }
-            renderer.render(scene, camera);
-        }
-        animate();
-    </script>
-</body>
-</html>
+                    z
